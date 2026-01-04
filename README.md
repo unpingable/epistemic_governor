@@ -122,12 +122,12 @@ Across all experiments:
 ├─────────────────────────────────────────────────────────────┤
 │  process(text, evidence) → GovernResult                     │
 │                                                             │
-│  Model ──→ Extractor ──→ Validator ──→ Adjudicator         │
+│  Model ──→ Extractor ──→ Validator ──→ Adjudicator          │
 │    │                                        │               │
 │    ↓                                        ↓               │
 │  [proposes]                           [verdicts]            │
 │                                             │               │
-│  Budget ←── FSM ←── Projector ←────────────┘               │
+│  Budget ←── FSM ←── Projector ←────────────┘                │
 │    │         │          │                                   │
 │    ↓         ↓          ↓                                   │
 │  [costs]  [states]  [governed output]                       │
