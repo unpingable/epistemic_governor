@@ -1,0 +1,28 @@
+{
+  "name": "CONFORMANCE_polarity_span_local",
+  "description": "POLARITY detection MUST be local to span, NOT influenced by negation elsewhere in sentence",
+  "category": "conformance",
+  "type": "prove_negative",
+  "invariant": "INV-005",
+  
+  "setup": {
+    "comment": "Sentence has 'not' but it applies to a different clause"
+  },
+  "input": {
+    "text": "Python is fast, not slow."
+  },
+  
+  "forbidden_outcome": {
+    "claim_about_fast_polarity": -1,
+    "reason": "The 'not' applies to 'slow', not to 'fast'. Global negation scan is WRONG."
+  },
+  
+  "required_outcome": {
+    "claim_about_fast_polarity": 1,
+    "claim_about_slow_polarity": -1
+  },
+  
+  "rationale": "A naive implementation scans the whole sentence for 'not' and flips polarity globally. This inverts meaning. 'Python is fast, not slow' becomes 'Python is NOT fast' which is the opposite of what the sentence says.",
+  
+  "failure_scenario": "Future optimizer simplifies polarity detection to 'if NOT in sentence, polarity=-1'. This test catches that classic bug."
+}

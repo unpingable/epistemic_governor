@@ -1,0 +1,82 @@
+{
+  "parameter": "resolution_cost",
+  "points": 8,
+  "safety_invariant_held": true,
+  "healthy_up_to_cost": 10.0,
+  "glass_from_cost": 15.0,
+  "phase_boundary": 12.5,
+  "results": [
+    {
+      "resolution_cost": 1.0,
+      "final_c_open": 0,
+      "net_accumulation_rate": 0.0,
+      "is_glass": false,
+      "growth_rate": -0.0002222222222222222,
+      "block_fraction": 0.0,
+      "regime": "HEALTHY_LATTICE"
+    },
+    {
+      "resolution_cost": 2.0,
+      "final_c_open": 0,
+      "net_accumulation_rate": 0.0,
+      "is_glass": false,
+      "growth_rate": -0.0002222222222222222,
+      "block_fraction": 0.0,
+      "regime": "HEALTHY_LATTICE"
+    },
+    {
+      "resolution_cost": 3.0,
+      "final_c_open": 0,
+      "net_accumulation_rate": 0.0,
+      "is_glass": false,
+      "growth_rate": -0.0002222222222222222,
+      "block_fraction": 0.0,
+      "regime": "HEALTHY_LATTICE"
+    },
+    {
+      "resolution_cost": 5.0,
+      "final_c_open": 0,
+      "net_accumulation_rate": 0.0,
+      "is_glass": false,
+      "growth_rate": -0.0002222222222222222,
+      "block_fraction": 0.0,
+      "regime": "HEALTHY_LATTICE"
+    },
+    {
+      "resolution_cost": 8.0,
+      "final_c_open": 0,
+      "net_accumulation_rate": 0.0,
+      "is_glass": false,
+      "growth_rate": -0.0002222222222222222,
+      "block_fraction": 0.0,
+      "regime": "HEALTHY_LATTICE"
+    },
+    {
+      "resolution_cost": 10.0,
+      "final_c_open": 1,
+      "net_accumulation_rate": 0.006666666666666667,
+      "is_glass": false,
+      "growth_rate": 0.002444444444444445,
+      "block_fraction": 0.0,
+      "regime": "HEALTHY_LATTICE"
+    },
+    {
+      "resolution_cost": 15.0,
+      "final_c_open": 12,
+      "net_accumulation_rate": 0.08,
+      "is_glass": true,
+      "growth_rate": 0.074,
+      "block_fraction": 0.0,
+      "regime": "HEALTHY_LATTICE"
+    },
+    {
+      "resolution_cost": 20.0,
+      "final_c_open": 19,
+      "net_accumulation_rate": 0.12666666666666668,
+      "is_glass": true,
+      "growth_rate": 0.11933333333333332,
+      "block_fraction": 0.0,
+      "regime": "HEALTHY_LATTICE"
+    }
+  ]
+}

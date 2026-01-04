@@ -1,0 +1,25 @@
+{
+  "name": "diff_value_drift_detected",
+  "description": "Same hash but different raw values must detect VALUE_DRIFT",
+  "category": "diff",
+  "input": {
+    "source_claim": {
+      "prop_hash": "same_hash",
+      "value_norm": "YEAR:2022",
+      "value_raw": "October 2022",
+      "value_features": {"year": 2022, "month": "october"}
+    },
+    "output_claim": {
+      "prop_hash": "same_hash",
+      "value_norm": "YEAR:2022",
+      "value_raw": "late 2022",
+      "value_features": {"year": 2022, "date_modifier": "late"}
+    }
+  },
+  "expected": {
+    "mutation_type": "VALUE_DRIFT",
+    "detected": true,
+    "details_contains": "modifier"
+  },
+  "rationale": "Same hash (both 2022) but meaning changed. Drift detection uses raw values."
+}

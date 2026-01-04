@@ -1,0 +1,9 @@
+{
+  "phase": "shadow_audit",
+  "model": "llama3:8b",
+  "timestamp": "2025-12-26T22:09:24.539506",
+  "total": 10,
+  "matches": 10,
+  "match_rate": 1.0,
+  "divergences": []
+}

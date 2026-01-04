@@ -1,0 +1,21 @@
+{
+  "name": "diff_quantifier_strengthen_violation",
+  "description": "Quantifier strengthening under SUMMARIZE is a violation",
+  "category": "diff",
+  "input": {
+    "heading": "SUMMARIZE",
+    "source_claim": {
+      "text": "Some users reported issues.",
+      "quantifier": "SOME"
+    },
+    "output_claim": {
+      "text": "Most users reported issues.",
+      "quantifier": "MOST"
+    }
+  },
+  "expected": {
+    "mutation_type": "QUANTIFIER_STRENGTHEN",
+    "is_violation": true
+  },
+  "rationale": "'some' → 'most' is claim inflation. Not allowed in summarize mode."
+}

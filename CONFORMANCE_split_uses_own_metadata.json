@@ -1,0 +1,44 @@
+{
+  "name": "CONFORMANCE_split_uses_own_metadata",
+  "description": "SPLIT MUST use detached hash's own triple, NOT parent's canonical triple",
+  "category": "conformance",
+  "type": "prove_negative",
+  "invariant": "INV-007",
+  
+  "setup": {
+    "comment": "Parent has October, child (merged) has November. Split child."
+  },
+  "input": {
+    "parent_claim": {
+      "prop_hash": "hash_october",
+      "entity_norm": "python",
+      "predicate_norm": "RELEASE",
+      "value_norm": "YEAR:2022",
+      "value_features": {"year": 2022, "month": "october"},
+      "value_raw": "October 2022"
+    },
+    "child_claim": {
+      "prop_hash": "hash_november",
+      "entity_norm": "python",
+      "predicate_norm": "RELEASE", 
+      "value_norm": "YEAR:2022",
+      "value_features": {"year": 2022, "month": "november"},
+      "value_raw": "November 2022"
+    },
+    "action": "rebind child to parent, then split child"
+  },
+  
+  "forbidden_outcome": {
+    "split_record_month": "october",
+    "reason": "Split must NOT copy parent's canonical triple to detached record"
+  },
+  
+  "required_outcome": {
+    "split_record_month": "november",
+    "split_record_value_raw": "November 2022"
+  },
+  
+  "rationale": "Without per-hash metadata, split creates 'identity fork without semantic fork'. The detached hash gets a new prop_id but with the WRONG meaning (parent's October instead of child's November).",
+  
+  "failure_scenario": "Future refactor removes HashMeta storage to 'simplify' the index. Split then copies parent record. This test catches that."
+}

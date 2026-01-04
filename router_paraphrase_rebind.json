@@ -1,0 +1,27 @@
+{
+  "name": "router_paraphrase_rebind",
+  "description": "Same meaning with different wording should REBIND",
+  "category": "router",
+  "input": {
+    "existing_claim": {
+      "prop_hash": "hash_original",
+      "entity_norm": "python_3.11",
+      "predicate_norm": "RELEASE",
+      "value_norm": "YEAR:2022",
+      "value_features": {"year": 2022, "month": "october"}
+    },
+    "new_claim": {
+      "prop_hash": "hash_paraphrase",
+      "entity_norm": "python_3.11",
+      "predicate_norm": "RELEASE",
+      "value_norm": "YEAR:2022",
+      "value_features": {"year": 2022}
+    }
+  },
+  "expected": {
+    "action": "REBIND",
+    "same_prop_id": true,
+    "reason_contains": "info_loss"
+  },
+  "rationale": "Info loss (month → year-only) is acceptable. Same proposition."
+}
