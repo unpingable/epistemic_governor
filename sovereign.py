@@ -78,6 +78,9 @@ class SovereignConfig:
     # Output config
     max_uncommitted_sigma: float = 0.3  # Max σ for uncommitted claims in output
     
+    # Jurisdiction (default: factual)
+    jurisdiction: str = "factual"
+    
     # Telemetry
     emit_telemetry: bool = True
 
@@ -314,10 +317,21 @@ class SovereignGovernor:
         5. FSM transition logic
         6. Resolution manager (ONLY in COMMIT_APPLIED)
         7. Output projection (from committed state)
+    
+    Jurisdictions:
+        The governor can operate in different jurisdictional modes
+        (factual, speculative, counterfactual, etc.) which control:
+        - Evidence admissibility
+        - Budget costs
+        - Closure rules
+        - Export policies
     """
     
     def __init__(self, config: SovereignConfig = None):
         self.config = config or SovereignConfig()
+        
+        # Load jurisdiction
+        self.jurisdiction = self._load_jurisdiction(self.config.jurisdiction)
         
         # V1 components
         self.boundary_gate = BoundaryGate()
@@ -345,6 +359,39 @@ class SovereignGovernor:
         self.total_processed = 0
         self.total_committed = 0
         self.total_rejected = 0
+    
+    def _load_jurisdiction(self, name: str):
+        """Load jurisdiction configuration."""
+        try:
+            from epistemic_governor.jurisdictions import get_jurisdiction, Jurisdiction
+            j = get_jurisdiction(name)
+            if j is None:
+                warnings.warn(f"Unknown jurisdiction '{name}', using factual defaults")
+                return None
+            return j
+        except ImportError:
+            # Jurisdictions module not available, use defaults
+            return None
+    
+    def _check_jurisdiction_closure(self, has_evidence: bool) -> Tuple[bool, str]:
+        """Check if closure is allowed under current jurisdiction."""
+        if self.jurisdiction is None:
+            # Default factual behavior
+            return (has_evidence, "Evidence required for closure")
+        
+        if not self.jurisdiction.closure_allowed:
+            return (False, f"Closure not allowed in {self.jurisdiction.name} jurisdiction")
+        
+        if self.jurisdiction.closure_requires_evidence and not has_evidence:
+            return (False, f"Evidence required for closure in {self.jurisdiction.name} jurisdiction")
+        
+        return (True, "")
+    
+    def _get_output_label(self) -> Optional[str]:
+        """Get output label for current jurisdiction."""
+        if self.jurisdiction is None:
+            return None
+        return self.jurisdiction.output_label
     
     def process(
         self,

@@ -16,6 +16,7 @@ import uuid
 import random
 import hashlib
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 from typing import List, Tuple, Dict, Any
 
 from epistemic_governor.diagnostics import (
@@ -989,7 +990,7 @@ if __name__ == "__main__":
         print(f"  {name}: {len(lines)} events")
     
     # Write combined JSONL
-    output_path = "/mnt/user-data/outputs/epistemic_governor/diagnostic_events.jsonl"
+    output_path = Path(__file__).parent / "diagnostic_events.jsonl"
     with open(output_path, "w") as f:
         f.write("\n".join(all_events))
     

@@ -25,6 +25,7 @@ import json
 from datetime import datetime, timezone
 from typing import Dict, List, Any, Tuple
 from dataclasses import dataclass
+from pathlib import Path
 import uuid
 
 from epistemic_governor.diagnostics import (
@@ -419,7 +420,7 @@ if __name__ == "__main__":
     print_sweep_report(results, analysis)
     
     # Save results
-    output_path = "/mnt/user-data/outputs/epistemic_governor/sweep_results.json"
+    output_path = Path(__file__).parent / "sweep_results.json"
     with open(output_path, "w") as f:
         json.dump(analysis, f, indent=2)
     print(f"\nResults saved to: {output_path}")

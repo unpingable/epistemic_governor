@@ -29,6 +29,7 @@ import json
 from datetime import datetime, timezone
 from typing import Dict, List, Any
 from dataclasses import dataclass
+from pathlib import Path
 import uuid
 
 from epistemic_governor.diagnostics import (
@@ -496,7 +497,7 @@ if __name__ == "__main__":
     print_glass_report(results, analysis)
     
     # Save results
-    output_path = "/mnt/user-data/outputs/epistemic_governor/glass_sweep_results.json"
+    output_path = Path(__file__).parent / "glass_sweep_results.json"
     
     # Convert to serializable format
     serializable = {

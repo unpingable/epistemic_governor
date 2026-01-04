@@ -588,7 +588,7 @@ def main():
     """Main entry point for query layer."""
     import sys
     
-    default_path = "/mnt/user-data/outputs/epistemic_governor/diagnostic_events.jsonl"
+    default_path = Path(__file__).parent / "diagnostic_events.jsonl"
     jsonl_path = sys.argv[1] if len(sys.argv) > 1 else default_path
     
     print("=" * 70)
@@ -616,7 +616,7 @@ def main():
     print(report)
     
     # Save report
-    report_path = "/mnt/user-data/outputs/epistemic_governor/diagnostic_report.txt"
+    report_path = Path(__file__).parent / "diagnostic_report.txt"
     with open(report_path, "w") as f:
         f.write(report)
     print(f"\nReport saved to: {report_path}")

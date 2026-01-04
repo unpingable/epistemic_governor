@@ -55,6 +55,22 @@ The system enforces:
 
 ## Cybernetics TODOs / Gaps to Consider (v2+)
 
+### Symbolic Kernels (v2 Foundation) — DESIGN CLOSED
+See `SYMBOLIC_KERNELS.md` for full design notes.
+
+**Decision**: SAT + DL-Lite as hostile admissibility oracles
+- SAT/CSP for forbidden transition enforcement
+- DL-Lite for contradiction detection
+- NO optimization, NO search, NO learning
+- Kernels say "no" with clarity, never "what instead"
+
+**Key invariant**: No internal process may modify the conditions under which it would have been forbidden.
+
+**State partition**:
+- S₀ (constitutional) — immutable: NLAI, FSM, kernels, forbidden transitions
+- S₁ (regulatory) — adaptive within bounds: budgets, thresholds, rates
+- S₂ (epistemic) — fully mutable: claims, contradictions, ledger
+
 ### 1. Ultrastability (Ashby)
 *Priority: HIGH - everything else cascades from this*
 
