@@ -1,4 +1,4 @@
-# Symbolic Kernels: Design Notes for v2
+# Constraint Kernels: Design Notes for v2
 
 **Status**: DESIGN PHASE - Not yet implemented
 **Decision**: CLOSED - SAT + DL-Lite is the foundation
@@ -7,9 +7,11 @@
 
 ## The Core Invariant
 
-> **The symbolic layer exists to say "no" with absolute clarity — never to say "what should happen instead."**
+> **The constraint layer exists to say "no" with absolute clarity — never to say "what should happen instead."**
 
-Symbolic components are **hostile admissibility oracles**, not reasoners.
+Constraint kernels are **hostile admissibility oracles**, not reasoners.
+
+These are formal control layers over probabilistic systems — not "symbolic AI" in the GOFAI sense.
 
 They answer:
 - `ALLOW / FORBID`
@@ -23,7 +25,7 @@ They never answer:
 
 ---
 
-## What Symbolic Kernels Are NOT
+## What Constraint Kernels Are NOT
 
 - Not a reasoner
 - Not a planner
@@ -35,7 +37,7 @@ The moment you add:
 - Search over possible states
 - Preference ordering beyond hard constraints
 - Any form of "best" instead of "allowed/forbidden"
-- Learning or adaptation in the symbolic layer
+- Learning or adaptation in the constraint layer
 
 ...you've smuggled agency back in through the side door.
 
@@ -128,9 +130,11 @@ The moment you add:
 ## Kernel Interface (Conceptual)
 
 ```python
-class SymbolicKernel:
+class ConstraintKernel:
     """
     A hostile admissibility oracle.
+    
+    Formal control layer, not symbolic reasoning.
     
     Guarantees:
     - No side effects
@@ -158,7 +162,7 @@ class SymbolicKernel:
 **S₀ — Constitutional layer (IMMUTABLE)**
 - NLAI
 - FSM topology
-- Symbolic kernel semantics
+- Constraint kernel semantics
 - Evidence typing rules
 - Forbidden transitions
 
@@ -188,7 +192,7 @@ Language may influence NONE directly
 
 > **No internal process may modify the conditions under which it would have been forbidden.**
 
-Symbolic kernels may **block** transitions.
+Constraint kernels may **block** transitions.
 They may never **authorize new kinds** of transitions.
 Adaptation may occur **only inside pre-authorized regions**.
 
@@ -200,8 +204,8 @@ If someone asks "isn't this still agency?", the answer:
 
 > *If this is agency, it's the agency of a circuit breaker that can change how quickly it trips — but not what counts as a short.*
 
-We're not balancing symbolic primacy *against* self-modification.
-We're using symbolic primacy to **make self-modification safe**.
+We're not balancing constraint enforcement *against* self-modification.
+We're using constraint enforcement to **make self-modification safe**.
 
 This is **Ashby ultrastability**:
 > Change the *parameters of regulation*, not the *laws being regulated by*.
@@ -226,12 +230,12 @@ This is **Ashby ultrastability**:
 
 ## The Meta-Point
 
-The symbolic layer should be so boring it's almost disappointing.
+The constraint layer should be so boring it's almost disappointing.
 
 If someone looks at it and says "that's it?" — **good**.
 If they say "why didn't you use [fancier thing]?" — **good**.
 
-The power isn't in the symbolic components. It's in the **composition** — how they sit under the governor's authority without ever becoming actors themselves.
+The power isn't in the constraint components. It's in the **composition** — how they sit under the governor's authority without ever becoming actors themselves.
 
 ---
 

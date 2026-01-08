@@ -177,6 +177,42 @@ Different failure modes, not moral judgment.
 
 ---
 
+---
+
+## Limits & Failure Modes
+
+### Q: What does this system NOT do?
+
+This system does not guarantee correct conclusions, fair outcomes, or equitable distribution of epistemic authority. It enforces *legibility of commitment*, not truth.
+
+### Q: What are the known risks?
+
+Hard epistemic constraints risk:
+- **Premature closure**: Conservative bias if evidence thresholds too high
+- **Suppression of novel claims**: Minority/exploratory claims blocked without explicit speculation channels
+- **Authority capture**: Whoever controls evidence sources controls what commits
+- **Adversarial compliance**: Meeting formal constraints while misleading interpretation
+
+### Q: Can this system be misused?
+
+Yes. The framework does not prevent:
+- Institutional capture
+- Asymmetric deployment
+- Selective evidence admission
+- Strategic constraint design
+
+It reallocates power from rhetoric to structure without democratizing it.
+
+### Q: What is the actual design goal then?
+
+Not elimination of error or abuse.
+
+Making epistemic failure **explicit, attributable, and technically inspectable** rather than deniable.
+
+The system is a crime scene recorder, not a crime preventer.
+
+---
+
 ## The One Answer
 
 If you're still confused about what this is:

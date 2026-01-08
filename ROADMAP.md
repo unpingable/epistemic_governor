@@ -55,14 +55,16 @@ The system enforces:
 
 ## Cybernetics TODOs / Gaps to Consider (v2+)
 
-### Symbolic Kernels (v2 Foundation) — DESIGN CLOSED
-See `SYMBOLIC_KERNELS.md` for full design notes.
+### Constraint Kernels (v2 Foundation) — DESIGN CLOSED
+See `CONSTRAINT_KERNELS.md` for full design notes.
 
 **Decision**: SAT + DL-Lite as hostile admissibility oracles
 - SAT/CSP for forbidden transition enforcement
 - DL-Lite for contradiction detection
 - NO optimization, NO search, NO learning
 - Kernels say "no" with clarity, never "what instead"
+
+These are formal control layers over probabilistic systems — not "symbolic AI" in the GOFAI sense.
 
 **Key invariant**: No internal process may modify the conditions under which it would have been forbidden.
 

@@ -185,7 +185,9 @@ Jurisdiction definitions are S₀ (constitutional).
 
 ---
 
-## Article V: Symbolic Kernel Constraints
+## Article V: Constraint Kernel Requirements
+
+These are formal control layers over probabilistic systems — not "symbolic AI" in the GOFAI sense.
 
 ### §5.1 Permitted Operations
 
