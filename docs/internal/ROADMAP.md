@@ -1,12 +1,11 @@
 # Epistemic Governor Roadmap
 
-## Current State (January 2026)
+## Current State (January 2026 - v1.3)
 
-**~60,000 lines across 85 Python files**
-**76 tests passing across 13 suites**
+**85+ Python files, 80+ tests passing**
 **NLAI compliance verified at runtime**
-**Two phase boundaries empirically mapped**
-**Interiority demonstrated via hysteresis**
+**Observability layer complete (OTel projection)**
+**Adversarial test suite proving invariants hold under attack**
 
 The system enforces:
 - Language is non-authoritative (proposals only)
@@ -19,44 +18,59 @@ The system enforces:
 
 ## Completed Work
 
-### Core Architecture
+### Core Architecture (v1.0)
 - [x] SovereignGovernor single entrypoint
 - [x] 6-state FSM with forbidden transitions
 - [x] Integrity sealing (hash chains, deterministic replay)
 - [x] NLAI enforcement at runtime
 - [x] Contradiction persistence as first-class objects
 
-### Empirical Validation
+### Empirical Validation (v1.0)
 - [x] Hysteresis test harness proving I(Y; S | X) > 0
 - [x] 8 workloads exercising different regimes
 - [x] Budget sweep → starvation boundary at refill_rate ≈ 2.0
 - [x] Cost sweep → glass boundary at resolution_cost ≈ 12.5
 - [x] Negative results: capacity ≠ laundering
 
-### Observability
+### Observability (v1.0-v1.3)
 - [x] Phase diagnostics with 53-field DiagnosticEvent
 - [x] Regime detection (6 regimes)
 - [x] Energy function E(S)
 - [x] DuckDB query layer with canonical queries
 - [x] Transition detection with causal attribution
+- [x] OTel projection layer (v1.3)
+- [x] LangChain callback handler (v1.3)
+- [x] Demo agent with end-to-end telemetry (v1.3)
 
-### Documentation
-- [x] Paper spec (PAPER_SPEC.md) - 600 lines, submission-ready
+### Jurisdictions (v1.1)
+- [x] 8 jurisdiction modes (Factual, Speculative, Counterfactual, etc.)
+- [x] Per-jurisdiction evidence policies, budgets, spillover rules
+- [x] Integration with SovereignGovernor
+- [x] 6 jurisdiction tests passing
+
+### Adversarial Testing (v1.2-v1.3)
+- [x] Forced resolution attack tests
+- [x] Authority spoofing tests
+- [x] Self-certification loop tests
+- [x] OTel emission tests (8 tests)
+- [x] All tests demonstrate NLAI holds under attack
+
+### Documentation (v1.0-v1.3)
+- [x] Paper spec (PAPER_SPEC.md) - 650+ lines, submission-ready
 - [x] Standalone spec (BLI_SPEC_V1.md) - interface definition
-- [x] FAQ (FAQ.md) - preemptive misreadings defense
+- [x] FAQ with limits & failure modes section
 - [x] Cybernetic lineage and terminology mapping
-
-### Extensions (Stubbed)
-- [x] Jurisdictions module - 8 modes defined, pattern documented
-- [ ] Jurisdiction integration with governor (v2)
-- [ ] Model interrogation / residual detection (v2)
+- [x] Three-cueing frame document
+- [x] BLI Constitution with mHC principles (v1.1)
+- [x] OTel semantic conventions spec
+- [x] Documentation reorganized into docs/ directory (v1.3.1)
 
 ---
 
 ## Cybernetics TODOs / Gaps to Consider (v2+)
 
 ### Constraint Kernels (v2 Foundation) — DESIGN CLOSED
-See `CONSTRAINT_KERNELS.md` for full design notes.
+See `docs/CONSTRAINT_KERNELS.md` for full design notes.
 
 **Decision**: SAT + DL-Lite as hostile admissibility oracles
 - SAT/CSP for forbidden transition enforcement
@@ -162,21 +176,21 @@ All of that is downstream and cheap compared to what's already built.
 ├─────────────────────────────────────────────────────────────┤
 │  process(text, evidence) → GovernResult                     │
 │                                                             │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
-│  │ BoundaryGate│ →  │  Extractor  │ →  │   Bridge    │     │
-│  │ (INT-1,3)   │    │    (V1)     │    │  (V1→V2)    │     │
-│  └─────────────┘    └─────────────┘    └─────────────┘     │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐      │
+│  │ BoundaryGate│ →  │  Extractor  │ →  │   Bridge    │      │
+│  │ (INT-1,3)   │    │    (V1)     │    │  (V1→V2)    │      │
+│  └─────────────┘    └─────────────┘    └─────────────┘      │
 │         ↓                                    ↓              │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
-│  │   FSM       │ ←  │ Adjudicator │ ←  │  Candidates │     │
-│  │ (6 states)  │    │    (V2)     │    │             │     │
-│  └─────────────┘    └─────────────┘    └─────────────┘     │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐      │
+│  │   FSM       │ ←  │ Adjudicator │ ←  │  Candidates │      │
+│  │ (6 states)  │    │    (V2)     │    │             │      │
+│  └─────────────┘    └─────────────┘    └─────────────┘      │
 │         ↓                                                   │
-│  ┌─────────────┐    ┌─────────────┐                        │
-│  │  Projector  │ →  │   Output    │                        │
-│  │ (auth. by   │    │ (committed  │                        │
-│  │  construct) │    │  only)      │                        │
-│  └─────────────┘    └─────────────┘                        │
+│  ┌─────────────┐    ┌─────────────┐                         │
+│  │  Projector  │ →  │   Output    │                         │
+│  │ (auth. by   │    │ (committed  │                         │
+│  │  construct) │    │  only)      │                         │
+│  └─────────────┘    └─────────────┘                         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -189,7 +203,11 @@ All of that is downstream and cheap compared to what's already built.
 | Domain | Tests | Status |
 |--------|-------|--------|
 | V1 Golden | 12 | ✓ |
-| V1→V2 Integration | 3 | ✓ |
+| Jurisdictions | 6 | ✓ |
+| Adversarial: Forced Resolution | 1 | ✓ |
+| Adversarial: Authority Spoofing | 1 | ✓ |
+| Adversarial: Self-Certification | 1 | ✓ |
+| Adversarial: OTel Emission | 8 | ✓ |
 | Authority Separation | 5 | ✓ |
 | Quarantine | 3 | ✓ |
 | Clock Invariants | 6 | ✓ |
@@ -201,8 +219,8 @@ All of that is downstream and cheap compared to what's already built.
 | Integrity Sealing | 10 | ✓ |
 | Hysteresis | 5 | ✓ |
 | Diagnostics | 5 | ✓ |
-| **Total** | **76** | **All passing** |
+| **Total** | **90+** | **All passing** |
 
 ---
 
-*Last updated: January 2026*
+*Last updated: January 2026 (v1.3.1)*

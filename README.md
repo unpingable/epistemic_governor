@@ -92,11 +92,14 @@ Across all experiments:
 
 | Document | Purpose |
 |----------|---------|
-| `PAPER_SPEC.md` | Full paper structure |
-| `BLI_SPEC_V1.md` | Standalone specification |
-| `THREE_CUEING.md` | Why LLMs need structural decoding |
-| `FAQ.md` | Misreadings and clarifications |
-| `NLAI.md` | Non-Linguistic Authority Invariant |
+| [`docs/PAPER_SPEC.md`](docs/PAPER_SPEC.md) | Full paper structure |
+| [`docs/BLI_SPEC_V1.md`](docs/BLI_SPEC_V1.md) | Standalone specification |
+| [`docs/THREE_CUEING.md`](docs/THREE_CUEING.md) | Why LLMs need structural decoding |
+| [`docs/BLI_CONSTITUTION.md`](docs/BLI_CONSTITUTION.md) | System contract (what's forbidden) |
+| [`docs/FAQ.md`](docs/FAQ.md) | Misreadings and clarifications |
+| [`docs/NLAI.md`](docs/NLAI.md) | Non-Linguistic Authority Invariant |
+| [`docs/OTEL_CONVENTIONS.md`](docs/OTEL_CONVENTIONS.md) | Telemetry semantic conventions |
+| [`docs/QUICKSTART.md`](docs/QUICKSTART.md) | Getting started guide |
 
 ---
 
@@ -127,7 +130,7 @@ Across all experiments:
 │    │                                        │               │
 │    ↓                                        ↓               │
 │  [proposes]                           [verdicts]            │
-│                                             │               │
+│                                            │                │
 │  Budget ←── FSM ←── Projector ←────────────┘                │
 │    │         │          │                                   │
 │    ↓         ↓          ↓                                   │
