@@ -94,6 +94,7 @@ Across all experiments:
 |----------|---------|
 | `PAPER_SPEC.md` | Full paper structure |
 | `BLI_SPEC_V1.md` | Standalone specification |
+| `THREE_CUEING.md` | Why LLMs need structural decoding |
 | `FAQ.md` | Misreadings and clarifications |
 | `NLAI.md` | Non-Linguistic Authority Invariant |
 
@@ -143,8 +144,6 @@ Across all experiments:
 ---
 
 ## Codebase
-
-~58,700 lines across 76 Python files.
 
 Key modules:
 - `sovereign.py` - Single entrypoint

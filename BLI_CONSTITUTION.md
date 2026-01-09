@@ -2,11 +2,53 @@
 
 ## System Contract for Bounded Lattice Inference
 
-**Version**: 1.0
+**Version**: 1.1
 **Status**: RATIFIED
 **Purpose**: Define what the system is never allowed to become, regardless of convenience.
 
 This document is not a feature list. It is a **constraint set**. Violation of any clause means the system is no longer BLI-compliant. No exception. No "just this once."
+
+---
+
+## Preamble: Design Principles
+
+This constitution exists because LLMs are three-cueing systems. They guess from context. They do not decode against structure. Guessing systems cannot be trusted with authority over state.
+
+The following design principles inform every article:
+
+### Principle 1: Legal State Manifold
+
+There exists a subset of state space that is admissible. Everything else is illegal by construction.
+
+The governor does not ask "is this reasoning bad?" It asks "is this state trajectory even allowed to exist?"
+
+**State legality supersedes outcome evaluation.**
+
+### Principle 2: Closure Under Composition
+
+Any constraint that does not compose across steps is not a constraint—it is a patch.
+
+Valid constraints must:
+- Survive recursion
+- Survive long horizons
+- Survive self-reference
+
+Invalid "constraints":
+- One-shot filters
+- End-of-chain checks
+- Context-dependent exceptions
+
+This kills 90% of alignment ideas. That is the point.
+
+### Principle 3: Conservation, Not Semantics
+
+The governor enforces structural properties without understanding meaning:
+
+- **Conservation of uncertainty**: Confidence cannot increase without evidence
+- **Conservation of authority**: No step grants itself more power
+- **Conservation of justification**: Claims cannot strengthen as premises decay
+
+The governor does not decide what is true. It decides which state transitions are legal, and makes illegality non-computable.
 
 ---
 
