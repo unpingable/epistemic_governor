@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "epistemic-governor"
-version = "0.1.0"
+version = "2.1.0"
 description = "Epistemic governance for LLM outputs - where text becomes state"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = {text = "Apache-2.0"}
 authors = [
-    {name = "James", email = "james@example.com"},
+    {name = "James Beck"},
 ]
 keywords = ["llm", "ai", "epistemic", "governance", "hallucination", "truth"]
 classifiers = [
@@ -34,5 +34,5 @@ Documentation = "https://github.com/username/epistemic-governor#readme"
 Repository = "https://github.com/username/epistemic-governor"
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
 include = ["epistemic_governor*"]
