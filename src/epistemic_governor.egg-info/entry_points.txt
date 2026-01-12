@@ -1,0 +1,2 @@
+[console_scripts]
+egov = epistemic_governor.egov:main

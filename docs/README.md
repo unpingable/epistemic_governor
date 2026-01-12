@@ -29,6 +29,7 @@
 
 | Document | Description |
 |----------|-------------|
+| [INTEGRATION.md](INTEGRATION.md) | MCP/LangChain deployment modes |
 | [OTEL_CONVENTIONS.md](OTEL_CONVENTIONS.md) | OpenTelemetry semantic conventions |
 | [QUICKSTART.md](QUICKSTART.md) | Getting started guide |
 

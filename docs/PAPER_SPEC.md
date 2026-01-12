@@ -3,7 +3,6 @@
 **A Systems Approach to Governed Reasoning Substrates**
 
 James Beck
-
 Independent Researcher
 
 **Repository**: https://github.com/unpingable/epistemic_governor
@@ -207,20 +206,20 @@ The definitions above require an implementation that enforces them. This section
 ├─────────────────────────────────────────────────────────────┤
 │  process(text, evidence) → GovernResult                     │
 │                                                             │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐      │
-│  │   Model     │ →  │  Extractor  │ →  │  Validator  │      │
-│  │ (proposer)  │    │  (claims)   │    │ (conflicts) │      │
-│  └─────────────┘    └─────────────┘    └─────────────┘      │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
+│  │   Model     │ →  │  Extractor  │ →  │  Validator  │     │
+│  │ (proposer)  │    │  (claims)   │    │ (conflicts) │     │
+│  └─────────────┘    └─────────────┘    └─────────────┘     │
 │         ↓                                    ↓              │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐      │
-│  │    FSM      │ ←  │ Adjudicator │ ←  │   Budget    │      │
-│  │ (6 states)  │    │ (verdicts)  │    │  (costs)    │      │
-│  └─────────────┘    └─────────────┘    └─────────────┘      │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
+│  │    FSM      │ ←  │ Adjudicator │ ←  │   Budget    │     │
+│  │ (6 states)  │    │ (verdicts)  │    │  (costs)    │     │
+│  └─────────────┘    └─────────────┘    └─────────────┘     │
 │         ↓                                                   │
-│  ┌─────────────┐    ┌─────────────┐                         │
-│  │  Projector  │ →  │   Output    │                         │
-│  │ (filtering) │    │ (governed)  │                         │
-│  └─────────────┘    └─────────────┘                         │
+│  ┌─────────────┐    ┌─────────────┐                        │
+│  │  Projector  │ →  │   Output    │                        │
+│  │ (filtering) │    │ (governed)  │                        │
+│  └─────────────┘    └─────────────┘                        │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -244,7 +243,23 @@ Transitions require evidence. FREEZE state blocks further commits on frozen targ
 | I4 | Costly state change | Budget constraints |
 | I5 | Explicit provenance | Required on all commits |
 
-### 3.4 Forbidden Transitions
+### 3.4 Fault Domains
+
+The invariants above define **fault containment boundaries** - regions where specific failure modes are confined. This follows standard dependable systems practice (Laprie, 1992).
+
+| Domain | Boundary Mechanism | Failure Contained |
+|--------|-------------------|-------------------|
+| Temporal | TTL, lag budgets, clock coherence | Stale data influencing decisions |
+| Authority | NLAI, evidence requirement | Language escalating to commitment |
+| Variety | Load shedding, domain caps | Input volume exhausting resources |
+| Adaptation | S₀/S₁ bounds, pathology freeze | Runaway parameter modification |
+| Interface | Contracts, injection filtering | External corruption of internals |
+
+Each boundary acts as a **variety attenuator** (Ashby, 1956): it limits the set of disturbances that can propagate inward. The nested structure means inner failures cannot escape, and outer failures cannot penetrate.
+
+This is not novel architecture - flight control, nuclear safety, and distributed consensus systems use identical patterns. The contribution is recognizing that language model governance has analogous failure modes (hallucination, false confidence, authority confusion) that require analogous containment.
+
+### 3.5 Forbidden Transitions
 
 | Code | Description | Blocked By |
 |------|-------------|------------|
@@ -516,19 +531,19 @@ This work treats language models as hazardous components that require containmen
 
 | Suite | Tests | Status |
 |-------|-------|--------|
-| Golden (V1) | 12 | X |
-| V1→V2 Integration | 3 | X |
-| Authority Separation | 5 | X |
-| Quarantine | 3 | X |
-| Clock Invariants | 6 | X |
-| Support Saturation | 5 | X |
-| Bridge Hardening | 6 | X |
-| Resolution Events | 4 | X |
-| Governor FSM | 3 | X |
-| Runtime Authority | 9 | X |
-| Integrity Sealing | 10 | X |
-| Hysteresis | 5 | X |
-| Diagnostics | 5 | X |
+| Golden (V1) | 12 | ✓ |
+| V1→V2 Integration | 3 | ✓ |
+| Authority Separation | 5 | ✓ |
+| Quarantine | 3 | ✓ |
+| Clock Invariants | 6 | ✓ |
+| Support Saturation | 5 | ✓ |
+| Bridge Hardening | 6 | ✓ |
+| Resolution Events | 4 | ✓ |
+| Governor FSM | 3 | ✓ |
+| Runtime Authority | 9 | ✓ |
+| Integrity Sealing | 10 | ✓ |
+| Hysteresis | 5 | ✓ |
+| Diagnostics | 5 | ✓ |
 | **Total** | **76** | **All passing** |
 
 ## Appendix B: Code Artifacts
@@ -577,7 +592,66 @@ For readers familiar with cybernetics and control theory, this table maps BLI co
 
 ---
 
-## Appendix D: References
+---
+
+## Appendix E: Version History
+
+### v1.3 (January 2026)
+
+**Observability Layer**
+- OTel projection layer mapping DiagnosticEvent to span attributes
+- LangChain callback handler (OBSERVE mode)
+- Demo agent proving end-to-end telemetry emission
+- Adversarial test suite for OTel emission (8 tests)
+
+**Documentation**
+- Three-cueing frame document explaining why LLMs need structural decoding
+- mHC design principles integrated into Constitution (v1.1)
+- Documentation reorganized into `docs/` directory
+
+**Key insight**: "LLMs are three-cueing machines. The governor is phonics for reasoning."
+
+### v1.2 (January 2026)
+
+**Adversarial Testing**
+- Forced resolution attack tests
+- Authority spoofing tests  
+- Self-certification loop tests
+- All tests demonstrate NLAI holds under attack
+
+**Terminology**
+- "Symbolic kernels" renamed to "Constraint kernels" (avoid GOFAI confusion)
+- Added explicit framing: "formal control layers over probabilistic systems"
+
+**Documentation**
+- Limits & failure modes section in FAQ
+- OTel semantic conventions specification
+
+### v1.1 (January 2026)
+
+**Jurisdictions**
+- 8 jurisdiction modes (Factual, Speculative, Counterfactual, etc.)
+- Per-jurisdiction evidence policies, budgets, spillover rules
+- Integration tests proving jurisdiction boundaries hold
+
+**Infrastructure**
+- Hardcoded paths removed (portable codebase)
+- Apache 2.0 license
+
+### v1.0 (January 2026)
+
+**Initial Release**
+- Core architecture: SovereignGovernor, FSM, contradiction persistence
+- Hysteresis test proving interiority (I(Y;S|X) > 0)
+- Phase diagnostics with 6 regime types
+- Budget sweep (BLI-EXP-001): sharp transition at refill_rate=2.0
+- Glass sweep (BLI-EXP-002): gradual transition at cost=12.5
+- 76 tests across 13 suites
+- Paper spec, FAQ, specification documents
+
+---
+
+## Appendix F: References
 
 ### Cybernetics
 

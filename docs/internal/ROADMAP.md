@@ -87,49 +87,92 @@ These are formal control layers over probabilistic systems — not "symbolic AI"
 - S₁ (regulatory) — adaptive within bounds: budgets, thresholds, rates
 - S₂ (epistemic) — fully mutable: claims, contradictions, ledger
 
-### 1. Ultrastability (Ashby)
+### 1. Ultrastability (Ashby) — IMPLEMENTED
 *Priority: HIGH - everything else cascades from this*
 
-- [ ] Define conditions under which the governor itself may mutate
-- [ ] Second-order adaptation when repeated repairs preserve failure
-- [ ] Guardrails against infinite self-modification
-- [ ] Detection of "successful failure" (system stabilizes around wrong attractor)
+See `ultrastability.py` for implementation, `test_ultrastability.py` for tests (14 passing).
 
-### 2. Variety Dial
-- [ ] Explicit policy for variety absorption vs amplification
-- [ ] Dynamic thresholds tied to Δt / stress / adversarial load
-- [ ] Detect exploitation via over-filtering or over-expansion
-- [ ] Bounded variety: min/max claims per turn, scope limits
+- [x] Define conditions under which the governor itself may mutate (S₁ only, via triggers)
+- [x] Second-order adaptation when repeated repairs preserve failure (pathology detection)
+- [x] Guardrails against infinite self-modification (floor/ceiling/step bounds)
+- [x] Detection of "successful failure" (wrong attractor detection)
 
-### 3. Meta-Repair Pathology (Bateson)
-- [ ] Detect Learning-II failure: repair loops that stabilize the wrong invariant
-- [ ] Flag repeated contradiction resolution with no reduction in failure rate
-- [ ] Escalation path when "repair itself is the bug"
-- [ ] Distinguish productive cycling from pathological cycling
+**Key components:**
+- `RegulatoryParameters` - S₁ state with constitutional bounds
+- `AdaptationTrigger` - When to consider adaptation
+- `PathologyDetector` - Oscillation, runaway, ineffective, wrong attractor
+- `UltrastabilityController` - Orchestrates the loop, enforces freeze on pathology
 
-### 4. Interface Austerity (Simon)
-- [ ] Formal inner vs outer environment boundary
-- [ ] Explicit interface contracts (what can cross the boundary)
-- [ ] Define inadmissible truths / forbidden actions even if effective
-- [ ] Boundary hardening against prompt injection at interface level
+### 2. Variety Dial — IMPLEMENTED
+See `variety.py` for implementation.
 
-### 5. Model Decentering (Luhmann-lite)
-- [ ] Treat model outputs as perturbations, not components
-- [ ] System defined by claims/contradictions/resolutions, not agents
-- [ ] Support multi-model + human hybrid governance without charisma bleed
-- [ ] No special status for any single model's outputs
+- [x] Explicit policy for variety absorption vs amplification
+- [x] Dynamic thresholds tied to stress / adversarial load
+- [x] Detect exploitation via over-filtering or over-expansion
+- [x] Bounded variety: min/max claims per turn, scope limits
 
-### 6. Temporal Hard Limits (Deutsch)
-- [ ] Lag budgets for signals and beliefs
-- [ ] Expiration semantics: "too late = false"
-- [ ] Hard fail on temporal incoherence, not just warn
-- [ ] Clock drift detection and correction
+**Key components:**
+- `VarietyBounds` - Configurable limits on claims, domains, novelty
+- `VarietyController` - Load shedding and exploitation detection
+- Stress-aware shedding when system under load
 
-### 7. Failure Provenance Taxonomy (Miller)
-- [ ] Classify failures by subsystem (input, memory, decision, boundary, etc.)
-- [ ] Distinguish epistemic failure from control failure
-- [ ] Prevent blame laundering via vague "system error"
-- [ ] Structured failure events with root cause chains
+### 3. Meta-Repair Pathology (Bateson) — IMPLEMENTED
+Covered by `ultrastability.py` PathologyDetector.
+
+- [x] Detect Learning-II failure: repair loops that stabilize the wrong invariant
+- [x] Flag repeated contradiction resolution with no reduction in failure rate
+- [x] Escalation path when "repair itself is the bug" (freeze + alert)
+- [x] Distinguish productive cycling from pathological cycling (oscillation detection)
+
+### 4. Interface Austerity (Simon) — IMPLEMENTED
+See `interface_contracts.py` for implementation.
+
+- [x] Formal inner vs outer environment boundary (INPUT/OUTPUT/CONTROL)
+- [x] Explicit interface contracts (what can cross the boundary)
+- [x] Define inadmissible truths / forbidden actions even if effective
+- [x] Boundary hardening against prompt injection at interface level
+
+**Key components:**
+- `InputContract`, `OutputContract`, `ControlContract` - Per-interface rules
+- `BoundaryGate` - Enforces contracts, filters forbidden fields
+- `INADMISSIBLE_ACTIONS` - Actions forbidden regardless of effectiveness
+
+### 5. Model Decentering (Luhmann-lite) — BY CONSTRUCTION
+Already true in the architecture.
+
+- [x] Treat model outputs as perturbations, not components (NLAI)
+- [x] System defined by claims/contradictions/resolutions, not agents
+- [x] Support multi-model + human hybrid governance without charisma bleed
+- [x] No special status for any single model's outputs
+
+**Evidence:** The governor never asks "who said this" - only "is there evidence?"
+
+### 6. Temporal Hard Limits (Deutsch) — IMPLEMENTED
+See `temporal.py` for implementation.
+
+- [x] Lag budgets for signals and beliefs (processing lag limits)
+- [x] Expiration semantics: "too late = false" (TTL on claims/evidence)
+- [x] Hard fail on temporal incoherence, not just warn
+- [x] Clock drift detection and correction
+
+**Key components:**
+- `TemporalBounds` - TTLs for claims, evidence, processing
+- `TemporalController` - Expiration tracking, lag checks, clock coherence
+- `check_turn_temporal()` - Turn-level temporal validation
+
+### 7. Failure Provenance Taxonomy (Miller) — IMPLEMENTED
+See `failure_provenance.py` for implementation.
+
+- [x] Classify failures by subsystem (input, memory, decision, boundary, etc.)
+- [x] Distinguish epistemic failure from control failure
+- [x] Prevent blame laundering via vague "system error"
+- [x] Structured failure events with root cause chains
+
+**Key components:**
+- `FailureSubsystem`, `FailureType`, `FailureSeverity` - Taxonomy enums
+- `FailureEvent` with `causal_chain` - Full provenance
+- `FailureRegistry` - Indexed failure collection
+- `FailureBuilder` - Structured failure construction
 
 ---
 
@@ -176,21 +219,21 @@ All of that is downstream and cheap compared to what's already built.
 ├─────────────────────────────────────────────────────────────┤
 │  process(text, evidence) → GovernResult                     │
 │                                                             │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐      │
-│  │ BoundaryGate│ →  │  Extractor  │ →  │   Bridge    │      │
-│  │ (INT-1,3)   │    │    (V1)     │    │  (V1→V2)    │      │
-│  └─────────────┘    └─────────────┘    └─────────────┘      │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
+│  │ BoundaryGate│ →  │  Extractor  │ →  │   Bridge    │     │
+│  │ (INT-1,3)   │    │    (V1)     │    │  (V1→V2)    │     │
+│  └─────────────┘    └─────────────┘    └─────────────┘     │
 │         ↓                                    ↓              │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐      │
-│  │   FSM       │ ←  │ Adjudicator │ ←  │  Candidates │      │
-│  │ (6 states)  │    │    (V2)     │    │             │      │
-│  └─────────────┘    └─────────────┘    └─────────────┘      │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
+│  │   FSM       │ ←  │ Adjudicator │ ←  │  Candidates │     │
+│  │ (6 states)  │    │    (V2)     │    │             │     │
+│  └─────────────┘    └─────────────┘    └─────────────┘     │
 │         ↓                                                   │
-│  ┌─────────────┐    ┌─────────────┐                         │
-│  │  Projector  │ →  │   Output    │                         │
-│  │ (auth. by   │    │ (committed  │                         │
-│  │  construct) │    │  only)      │                         │
-│  └─────────────┘    └─────────────┘                         │
+│  ┌─────────────┐    ┌─────────────┐                        │
+│  │  Projector  │ →  │   Output    │                        │
+│  │ (auth. by   │    │ (committed  │                        │
+│  │  construct) │    │  only)      │                        │
+│  └─────────────┘    └─────────────┘                        │
 └─────────────────────────────────────────────────────────────┘
 ```
 
