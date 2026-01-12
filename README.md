@@ -17,6 +17,7 @@ This work describes a governed reasoning substrate that introduces persistent st
 - A control-theoretic architecture for persistent reasoning under hard constraints
 - An empirical demonstration that interiority can exist without agency
 - A diagnostic framework for reasoning-system failure modes (starvation, accumulation)
+- **v2.0**: Regime detection with automatic intervention (boil control)
 
 ### What this is not:
 
@@ -39,52 +40,69 @@ The model proposes. The governor decides. State binds. Language never overrides 
 ## Quick Start
 
 ```bash
-# Run demonstrator (shows core behaviors)
-PYTHONPATH=. python epistemic_governor/demonstrator.py
+# Install
+pip install -e .
+
+# Or just add to path
+export PYTHONPATH="$(pwd)/src"
 
 # Run tests
-PYTHONPATH=. python epistemic_governor/run_golden_tests.py
-PYTHONPATH=. python epistemic_governor/hysteresis.py
+python tests/test_integration.py
+python tests/test_regime.py
+python tests/test_boil.py
 
-# Run experiments
-PYTHONPATH=. python epistemic_governor/budget_sweep.py
-PYTHONPATH=. python epistemic_governor/glass_sweep.py
+# Run validation harness
+python -m epistemic_governor.validation_harness
+```
+
+### Basic Usage
+
+```python
+from epistemic_governor.sovereign import SovereignGovernor, SovereignConfig
+
+# Create governor with boil control
+gov = SovereignGovernor(SovereignConfig(
+    boil_control_enabled=True,
+    boil_control_mode="oolong",  # balanced preset
+))
+
+# Process text
+result = gov.process("The sky is blue.")
+
+# Check regime
+print(f"Regime: {gov.last_regime_response['regime']}")
+print(f"Action: {gov.last_regime_response['action']}")
 ```
 
 ---
 
-## Key Results
+## Control Modes
 
-### Interiority Confirmed
+The governor operates in named modes (like kettle temperature settings):
 
-Same input + different internal state = different output, traceable to specific state objects.
+| Mode | Claim Budget | Novelty | Use Case |
+|------|-------------|---------|----------|
+| GREEN_TEA | 3/turn | 0.1 | Safety-critical |
+| OOLONG | 8/turn | 0.3 | **Default** |
+| FRENCH_PRESS | 20/turn | 0.5 | Exploration |
+| BOIL | 100/turn | 1.0 | Tripwires only |
 
-```
-Hysteresis test: 24 trials, 16.7% divergence rate
-Divergence traces to: contradiction IDs, commitment IDs, budget values
-```
+See [`docs/OPERATING_ENVELOPE.md`](docs/OPERATING_ENVELOPE.md) for full details.
 
-### Two Phase Boundaries Identified
+---
 
-**Budget Starvation Boundary** (sharp transition)
-```
-repair_refill_rate < 2.0 → STARVATION
-repair_refill_rate ≥ 2.0 → HEALTHY
-```
+## Operational Regimes
 
-**Glass Ossification Boundary** (gradual transition)
-```
-resolution_cost < 12.5 → HEALTHY
-resolution_cost > 12.5 → GLASS (accumulation)
-```
+The system classifies its state into four regimes:
 
-Both collapse to: **λ_open vs μ_close** (queueing theory)
+| Regime | Response |
+|--------|----------|
+| ELASTIC | Normal operation |
+| WARM | Tighten constraints |
+| DUCTILE | Mandatory reset |
+| UNSTABLE | Emergency stop |
 
-### Safety Invariants Held
-
-Across all experiments:
-- `closed_without_evidence = 0` (no laundering)
-- `ρ_S` stayed healthy (no ceremony collapse)
+Regime detection uses observable signals (hysteresis, tool gain, budget pressure) - not semantic analysis.
 
 ---
 
@@ -92,54 +110,52 @@ Across all experiments:
 
 | Document | Purpose |
 |----------|---------|
+| [`docs/OPERATING_ENVELOPE.md`](docs/OPERATING_ENVELOPE.md) | **Operational limits and tuning** |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System overview and module structure |
 | [`docs/PAPER_SPEC.md`](docs/PAPER_SPEC.md) | Full paper structure |
 | [`docs/BLI_CONSTITUTION.md`](docs/BLI_CONSTITUTION.md) | System contract (what's forbidden) |
 | [`docs/INTEGRATION.md`](docs/INTEGRATION.md) | MCP/LangChain deployment modes |
-| [`docs/FAQ.md`](docs/FAQ.md) | Misreadings and clarifications |
 
 ---
 
 ## Test Summary
 
-| Suite | Tests | Status |
-|-------|-------|--------|
-| Golden | 12 | ✓ |
-| Ultrastability | 17 | ✓ |
-| Edge Cases | 4 | ✓ |
-| OTel Emission | 8 | ✓ |
-| Adversarial | 3 | ✓ |
-| (+ legacy suites) | ~50 | ✓ |
-| **Total** | **94+** | **All passing** |
+| Suite | Tests | Description |
+|-------|-------|-------------|
+| Integration | 12 | Full pipeline end-to-end |
+| Regime | 8 | Regime detection and transitions |
+| Ultrastability | 17 | Ashby-style adaptation |
+| Boil Control | 7 | Presets, dwell time, tripwires |
+| Edge Cases | 4 | TTL, rate limiter, domain caps |
+| Golden | 2 | Extractor and conformance |
+| **Total** | **50** | **All passing** |
 
 ---
 
-## Architecture
+## Architecture (v2.0)
 
 ```
 epistemic_governor/
-├── constitution/       # S₀ - Immutable law
-│   └── contracts.py   # Boundary definitions
-│
-├── control/           # S₁ - Regulatory controllers
-│   ├── ultrastability.py  # Adaptation
-│   ├── variety.py         # Load shedding
-│   ├── temporal.py        # TTL, lag
-│   └── provenance.py      # Failure taxonomy
-│
-├── observability/     # Telemetry
-│   └── otel.py        # OpenTelemetry
-│
-├── integrations/      # External adapters
-│   ├── langchain.py   # Callback handler
-│   └── demo.py        # Demo agent
-│
-├── jurisdictions/     # Domain policies
-├── tests/            # All tests
-└── docs/             # Documentation
+├── src/
+│   └── epistemic_governor/
+│       ├── constitution/       # S₀ - Immutable law
+│       │   └── contracts.py
+│       ├── control/           # S₁ - Regulatory controllers
+│       │   ├── ultrastability.py
+│       │   ├── variety.py
+│       │   ├── temporal.py
+│       │   ├── provenance.py
+│       │   ├── reset.py       # Typed state contraction
+│       │   ├── regime.py      # Operational regime detection
+│       │   └── boil.py        # Named presets (kettle pattern)
+│       ├── observability/
+│       ├── integrations/
+│       ├── jurisdictions/
+│       └── sovereign.py       # Main entry point
+├── tests/
+├── docs/
+└── pyproject.toml
 ```
-
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for details.
 
 ---
 

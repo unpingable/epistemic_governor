@@ -1,0 +1,12 @@
+{
+  "name": "sovereign_basic_flow",
+  "category": "conformance",
+  "description": "Test basic sovereign governor flow with boil control",
+  "invariant": "SOVEREIGN-001",
+  "input": {
+    "text": "Water boils at 100 degrees Celsius at sea level."
+  },
+  "required_outcome": {
+    "claims_extracted_min": 1
+  }
+}

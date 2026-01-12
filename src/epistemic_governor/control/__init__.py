@@ -11,6 +11,7 @@ Contents:
 - provenance: Failure taxonomy and causal chains
 - reset: Typed state contraction operations
 - regime: Operational regime detection and response
+- boil: Named regime presets with dwell time (kettle pattern)
 """
 
 from epistemic_governor.control.ultrastability import (
@@ -64,6 +65,13 @@ from epistemic_governor.control.regime import (
     check_coupling_reduction,
 )
 
+from epistemic_governor.control.boil import (
+    BoilController,
+    BoilPreset,
+    ControlMode,
+    PRESETS,
+)
+
 __all__ = [
     # Ultrastability
     "UltrastabilityController",
@@ -104,4 +112,9 @@ __all__ = [
     "RegimeThresholds",
     "RegimeTransition",
     "check_coupling_reduction",
+    # Boil
+    "BoilController",
+    "BoilPreset",
+    "ControlMode",
+    "PRESETS",
 ]

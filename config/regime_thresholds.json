@@ -1,0 +1,72 @@
+{
+  "version": "2.0.0",
+  "description": "Regime detection thresholds - edit this, not source code",
+  "notes": {
+    "tuning_date": null,
+    "tuning_method": "manual defaults",
+    "validation_accuracy": null,
+    "source": "initial gut feel, not empirically tuned"
+  },
+  "thresholds": {
+    "warm_hysteresis": 0.2,
+    "warm_relaxation": 3.0,
+    "warm_anisotropy": 0.3,
+    "warm_provenance_deficit": 0.2,
+    "ductile_hysteresis": 0.5,
+    "ductile_relaxation": 10.0,
+    "ductile_anisotropy": 0.5,
+    "ductile_budget_pressure": 0.7,
+    "unstable_tool_gain": 1.0,
+    "unstable_budget_pressure": 0.9
+  },
+  "presets": {
+    "green_tea": {
+      "claim_budget_per_turn": 3,
+      "novelty_tolerance": 0.1,
+      "authority_posture": "strict",
+      "variety_multiplier": 0.5,
+      "horizon_turns": 5,
+      "cycle_period_turns": 2,
+      "hold_time_turns": 8,
+      "min_dwell_turns": 3,
+      "tripwires": {
+        "contradiction": true,
+        "provenance": true,
+        "authority": true,
+        "cascade": true
+      }
+    },
+    "oolong": {
+      "claim_budget_per_turn": 8,
+      "novelty_tolerance": 0.3,
+      "authority_posture": "normal",
+      "variety_multiplier": 1.0,
+      "horizon_turns": 10,
+      "cycle_period_turns": 3,
+      "hold_time_turns": 5,
+      "min_dwell_turns": 2,
+      "tripwires": {
+        "contradiction": true,
+        "provenance": true,
+        "authority": true,
+        "cascade": true
+      }
+    },
+    "french_press": {
+      "claim_budget_per_turn": 20,
+      "novelty_tolerance": 0.5,
+      "authority_posture": "permissive",
+      "variety_multiplier": 1.5,
+      "horizon_turns": 15,
+      "cycle_period_turns": 5,
+      "hold_time_turns": 3,
+      "min_dwell_turns": 1,
+      "tripwires": {
+        "contradiction": true,
+        "provenance": false,
+        "authority": true,
+        "cascade": true
+      }
+    }
+  }
+}

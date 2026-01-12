@@ -53,6 +53,10 @@ from epistemic_governor.governor_fsm import (
     Evidence, EvidenceType, ActionType, Proposal,
 )
 
+# Control imports (boil control)
+from epistemic_governor.control.boil import BoilController, ControlMode, PRESETS
+from epistemic_governor.control.regime import RegimeSignals, OperationalRegime
+
 
 # =============================================================================
 # Configuration
@@ -83,6 +87,10 @@ class SovereignConfig:
     
     # Telemetry
     emit_telemetry: bool = True
+    
+    # Boil control (kettle pattern)
+    boil_control_enabled: bool = True
+    boil_control_mode: str = "oolong"  # green_tea, white_tea, oolong, black_tea, french_press, boil
 
 
 # =============================================================================
@@ -126,6 +134,10 @@ class ProjectedOutput:
     # Telemetry
     fsm_state: str = ""
     processing_time_ms: float = 0
+    
+    # Regime control
+    regime: Optional[str] = None
+    tripwire: Optional[str] = None
 
 
 class OutputProjector:
@@ -355,10 +367,24 @@ class SovereignGovernor:
         # Output projector
         self.projector = OutputProjector(self.config)
         
+        # Boil controller (kettle pattern regime control)
+        self.boil_controller = None
+        if self.config.boil_control_enabled:
+            mode_name = self.config.boil_control_mode.upper()
+            try:
+                mode = ControlMode[mode_name]
+            except KeyError:
+                warnings.warn(f"Unknown boil control mode '{mode_name}', using OOLONG")
+                mode = ControlMode.OOLONG
+            self.boil_controller = BoilController(mode)
+        
         # Telemetry
         self.total_processed = 0
         self.total_committed = 0
         self.total_rejected = 0
+        
+        # Regime tracking
+        self.last_regime_response = None
     
     def _load_jurisdiction(self, name: str):
         """Load jurisdiction configuration."""
@@ -393,6 +419,57 @@ class SovereignGovernor:
             return None
         return self.jurisdiction.output_label
     
+    def _compute_regime_signals(self) -> RegimeSignals:
+        """
+        Compute regime signals from current state.
+        
+        Maps internal state to the observable signals that
+        RegimeDetector uses for classification.
+        """
+        # Get quarantine stats
+        quarantine_stats = self.fsm.quarantine.get_stats()
+        quarantine_rate = quarantine_stats.get("total", 0) / max(self.total_processed, 1)
+        
+        # Get FSM state for hysteresis estimate
+        fsm_transitions = len(self.fsm.transitions)
+        # Hysteresis: how "sticky" is the state? More transitions = less sticky
+        # Normalize: 0 transitions = 0 hysteresis, 10+ = 0.5+
+        hysteresis = min(0.8, fsm_transitions * 0.05)
+        
+        # Tool gain estimate (placeholder - would need actual tool metrics)
+        # For now, estimate from rejection rate
+        rejection_rate = self.total_rejected / max(self.total_processed, 1)
+        tool_gain = 0.3 + rejection_rate  # Higher rejection = system is straining
+        
+        # Anisotropy: variance in claim acceptance
+        # Placeholder - would need paraphrase testing
+        anisotropy = quarantine_rate * 0.5
+        
+        # Provenance deficit: claims without evidence anchors
+        # Estimate from quarantine rate (schema failures often = missing provenance)
+        provenance_deficit = quarantine_rate
+        
+        # Budget pressure: how close to limits?
+        sigma_used = self.symbolic_state.total_sigma_allocated
+        sigma_budget = self.symbolic_state.sigma_budget
+        budget_pressure = sigma_used / sigma_budget if sigma_budget > 0 else 0.5
+        
+        # Contradiction rates (placeholder)
+        # Would need to track actual contradiction open/close
+        c_open = quarantine_rate * 0.3
+        c_close = 0.2
+        
+        return RegimeSignals(
+            hysteresis_magnitude=hysteresis,
+            relaxation_time_seconds=fsm_transitions * 0.5,  # More transitions = longer relax
+            tool_gain_estimate=tool_gain,
+            anisotropy_score=anisotropy,
+            provenance_deficit_rate=provenance_deficit,
+            budget_pressure=budget_pressure,
+            contradiction_open_rate=c_open,
+            contradiction_close_rate=c_close,
+        )
+    
     def process(
         self,
         text: str,
@@ -423,6 +500,29 @@ class SovereignGovernor:
                 self.fsm._log_forbidden("F-02", "MODEL_TEXT evidence submitted to process()")
             else:
                 valid_evidence.append(ev)
+        
+        # === Boil Control Check ===
+        # Compute regime signals and check for interventions
+        if self.boil_controller:
+            signals = self._compute_regime_signals()
+            regime_response = self.boil_controller.process_turn(signals)
+            self.last_regime_response = regime_response
+            
+            # Check for emergency stop
+            if regime_response.get("action") == "EMERGENCY_STOP":
+                tripwire = regime_response.get("tripwire", "regime")
+                return self._regime_blocked_result(
+                    text, 
+                    f"Regime control: {tripwire} tripwire triggered",
+                    regime_response,
+                    start_time
+                )
+            
+            # Check for reset action (DUCTILE regime)
+            if regime_response.get("action") == "RESET":
+                # Log but continue with tightened constraints
+                # The reset has already been executed by BoilController
+                pass
         
         # Step 1: Boundary gate
         gate_result = self.boundary_gate.classify_input(text)
@@ -578,9 +678,34 @@ class SovereignGovernor:
             processing_time_ms=(end_time - start_time).total_seconds() * 1000,
         )
     
+    def _regime_blocked_result(
+        self, 
+        text: str, 
+        reason: str, 
+        regime_response: dict,
+        start_time: datetime
+    ) -> GovernResult:
+        """Return result when regime control blocks processing."""
+        end_time = datetime.utcnow()
+        return GovernResult(
+            output=ProjectedOutput(
+                text=f"[REGIME BLOCKED: {reason}]",
+                fsm_state=self.fsm.fsm_state.name,
+                regime=regime_response.get("regime"),
+                tripwire=regime_response.get("tripwire"),
+            ),
+            claims_extracted=0,
+            claims_committed=0,
+            claims_quarantined=0,
+            claims_rejected=0,
+            fsm_transitions=[],
+            forbidden_attempts=[],
+            processing_time_ms=(end_time - start_time).total_seconds() * 1000,
+        )
+    
     def get_state(self) -> Dict[str, Any]:
         """Get current governor state."""
-        return {
+        state = {
             "fsm": self.fsm.get_state(),
             "symbolic_state": {
                 "commitments": len(self.symbolic_state.commitments),
@@ -594,6 +719,13 @@ class SovereignGovernor:
                 "rejected": self.total_rejected,
             },
         }
+        
+        # Add boil controller state if enabled
+        if self.boil_controller:
+            state["boil_control"] = self.boil_controller.get_state()
+            state["last_regime"] = self.last_regime_response
+        
+        return state
 
 
 # =============================================================================

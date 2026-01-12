@@ -406,16 +406,25 @@ class ValidationHarness:
 # CLI
 # =============================================================================
 
-def run_validation():
+def run_validation(config_path: Optional[Path] = None):
     """Run full validation suite."""
     print("\n" + "="*70)
     print("REGIME DETECTOR VALIDATION HARNESS")
     print("="*70 + "\n")
     
-    harness = ValidationHarness()
+    # Load thresholds from config if provided
+    if config_path:
+        from epistemic_governor.config_loader import load_thresholds
+        thresholds = load_thresholds(config_path)
+        print(f"Using thresholds from: {config_path}")
+    else:
+        thresholds = None
+        print("Using default thresholds")
+    
+    harness = ValidationHarness(thresholds=thresholds)
     results = harness.run_all_scenarios()
     
-    print("Scenario Results:")
+    print("\nScenario Results:")
     print("-" * 70)
     
     for r in results:
@@ -453,5 +462,259 @@ def run_validation():
     return report
 
 
+def collect_labeled_data(scenarios: List[WorkloadScenario]) -> List[Tuple[RegimeSignals, OperationalRegime, str]]:
+    """Collect (signals, label, scenario_name) tuples for tuning."""
+    data = []
+    for scenario in scenarios:
+        for signals, label in zip(scenario.signals, scenario.expected_regimes):
+            data.append((signals, label, scenario.name))
+    return data
+
+
+def split_train_holdout(
+    data: List[Tuple[RegimeSignals, OperationalRegime, str]],
+    holdout_ratio: float = 0.2,
+    seed: int = 42,
+) -> Tuple[List, List]:
+    """Deterministic split for reproducibility."""
+    rng = random.Random(seed)
+    indices = list(range(len(data)))
+    rng.shuffle(indices)
+    cutoff = int(len(indices) * (1 - holdout_ratio))
+    train_idx = set(indices[:cutoff])
+    train = [data[i] for i in range(len(data)) if i in train_idx]
+    holdout = [data[i] for i in range(len(data)) if i not in train_idx]
+    return train, holdout
+
+
+def evaluate_thresholds(
+    data: List[Tuple[RegimeSignals, OperationalRegime, str]],
+    thresholds: RegimeThresholds,
+) -> Dict[str, Any]:
+    """Evaluate macro-F1 and false transition rate on labeled data."""
+    detector = RegimeDetector(thresholds=thresholds, collect_metrics=False)
+    y_true = []
+    y_pred = []
+    by_scenario: Dict[str, List[str]] = {}
+    by_scenario_true: Dict[str, List[str]] = {}
+
+    for signals, label, scenario_name in data:
+        response = detector.respond(signals)
+        y_true.append(label.name)
+        y_pred.append(response["regime"])
+        by_scenario.setdefault(scenario_name, []).append(response["regime"])
+        by_scenario_true.setdefault(scenario_name, []).append(label.name)
+
+    # Macro-F1
+    regimes = [r.name for r in OperationalRegime]
+    f1s = []
+    for regime in regimes:
+        tp = sum(1 for t, p in zip(y_true, y_pred) if t == regime and p == regime)
+        fp = sum(1 for t, p in zip(y_true, y_pred) if t != regime and p == regime)
+        fn = sum(1 for t, p in zip(y_true, y_pred) if t == regime and p != regime)
+        precision = tp / (tp + fp) if (tp + fp) else 0.0
+        recall = tp / (tp + fn) if (tp + fn) else 0.0
+        f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) else 0.0
+        f1s.append(f1)
+    macro_f1 = sum(f1s) / len(f1s) if f1s else 0.0
+
+    # Accuracy
+    accuracy = sum(1 for t, p in zip(y_true, y_pred) if t == p) / len(y_true) if y_true else 0.0
+
+    # False transition rate
+    false_transitions = 0
+    total_transitions = 0
+    for name, preds in by_scenario.items():
+        truths = by_scenario_true[name]
+        expected_transitions = sum(1 for i in range(1, len(truths)) if truths[i] != truths[i - 1])
+        observed_transitions = sum(1 for i in range(1, len(preds)) if preds[i] != preds[i - 1])
+        total_transitions += observed_transitions
+        false_transitions += abs(observed_transitions - expected_transitions)
+
+    false_transition_rate = false_transitions / total_transitions if total_transitions else 0.0
+
+    return {
+        "macro_f1": macro_f1,
+        "accuracy": accuracy,
+        "false_transition_rate": false_transition_rate,
+        "total_samples": len(data),
+    }
+
+
+def search_thresholds(
+    train_data: List[Tuple[RegimeSignals, OperationalRegime, str]],
+    seed: int = 42,
+    trials: int = 200,
+    penalty_weight: float = 0.5,
+) -> Tuple[RegimeThresholds, Dict[str, Any]]:
+    """Random search thresholds with a false-transition penalty."""
+    rng = random.Random(seed)
+    best_score = float("-inf")
+    best_thresholds = RegimeThresholds()
+    best_metrics: Dict[str, Any] = {}
+
+    for trial in range(trials):
+        candidate = RegimeThresholds(
+            warm_hysteresis=rng.uniform(0.05, 0.4),
+            warm_relaxation=rng.uniform(1.0, 6.0),
+            warm_anisotropy=rng.uniform(0.1, 0.6),
+            warm_provenance_deficit=rng.uniform(0.05, 0.4),
+            ductile_hysteresis=rng.uniform(0.3, 0.7),
+            ductile_relaxation=rng.uniform(6.0, 18.0),
+            ductile_anisotropy=rng.uniform(0.35, 0.7),
+            ductile_budget_pressure=rng.uniform(0.5, 0.9),
+            unstable_tool_gain=rng.uniform(0.9, 1.2),
+            unstable_budget_pressure=rng.uniform(0.75, 0.98),
+        )
+        metrics = evaluate_thresholds(train_data, candidate)
+        score = metrics["macro_f1"] - penalty_weight * metrics["false_transition_rate"]
+        
+        if score > best_score:
+            best_score = score
+            best_thresholds = candidate
+            best_metrics = {"score": score, "trial": trial, **metrics}
+
+    return best_thresholds, best_metrics
+
+
+def run_tuning(
+    output_config: Optional[Path] = None,
+    seed: int = 42,
+    holdout_ratio: float = 0.2,
+    trials: int = 200,
+    penalty_weight: float = 0.5,
+):
+    """
+    Tune RegimeThresholds on validation scenarios.
+    
+    Outputs tuned thresholds to a config file (not source code).
+    """
+    print("\n" + "="*70)
+    print("REGIME THRESHOLD TUNING")
+    print("="*70 + "\n")
+
+    # Collect data from scenarios
+    scenarios = [
+        make_stable_workload(),
+        make_gradual_stress_workload(),
+        make_spike_workload(),
+        make_cascade_workload(),
+        make_oscillation_workload(),
+    ]
+
+    data = collect_labeled_data(scenarios)
+    train, holdout = split_train_holdout(data, holdout_ratio=holdout_ratio, seed=seed)
+
+    print(f"Data: {len(data)} samples ({len(train)} train, {len(holdout)} holdout)")
+    print(f"Trials: {trials}, Penalty weight: {penalty_weight}")
+    print()
+
+    # Baseline
+    baseline = RegimeThresholds()
+    baseline_train = evaluate_thresholds(train, baseline)
+    baseline_holdout = evaluate_thresholds(holdout, baseline)
+
+    # Search
+    print("Searching...")
+    tuned_thresholds, tuned_train = search_thresholds(
+        train, seed=seed, trials=trials, penalty_weight=penalty_weight
+    )
+    tuned_holdout = evaluate_thresholds(holdout, tuned_thresholds)
+
+    # Report
+    print("\n" + "-"*70)
+    print("Results (macro-F1 / accuracy / false-transition-rate)")
+    print("-"*70)
+    print(f"Baseline train:   {baseline_train['macro_f1']:.3f} / {baseline_train['accuracy']:.3f} / {baseline_train['false_transition_rate']:.3f}")
+    print(f"Baseline holdout: {baseline_holdout['macro_f1']:.3f} / {baseline_holdout['accuracy']:.3f} / {baseline_holdout['false_transition_rate']:.3f}")
+    print(f"Tuned train:      {tuned_train['macro_f1']:.3f} / {tuned_train['accuracy']:.3f} / {tuned_train['false_transition_rate']:.3f}")
+    print(f"Tuned holdout:    {tuned_holdout['macro_f1']:.3f} / {tuned_holdout['accuracy']:.3f} / {tuned_holdout['false_transition_rate']:.3f}")
+
+    print("\n" + "-"*70)
+    print("Tuned thresholds:")
+    print("-"*70)
+    print(f"warm_hysteresis:        {tuned_thresholds.warm_hysteresis:.3f}")
+    print(f"warm_relaxation:        {tuned_thresholds.warm_relaxation:.3f}")
+    print(f"warm_anisotropy:        {tuned_thresholds.warm_anisotropy:.3f}")
+    print(f"warm_provenance_deficit:{tuned_thresholds.warm_provenance_deficit:.3f}")
+    print(f"ductile_hysteresis:     {tuned_thresholds.ductile_hysteresis:.3f}")
+    print(f"ductile_relaxation:     {tuned_thresholds.ductile_relaxation:.3f}")
+    print(f"ductile_anisotropy:     {tuned_thresholds.ductile_anisotropy:.3f}")
+    print(f"ductile_budget_pressure:{tuned_thresholds.ductile_budget_pressure:.3f}")
+    print(f"unstable_tool_gain:     {tuned_thresholds.unstable_tool_gain:.3f}")
+    print(f"unstable_budget_pressure:{tuned_thresholds.unstable_budget_pressure:.3f}")
+
+    # Save to config file
+    if output_config:
+        from epistemic_governor.config_loader import save_thresholds
+        save_thresholds(
+            tuned_thresholds,
+            output_config,
+            notes={
+                "tuning_date": datetime.now(timezone.utc).isoformat(),
+                "tuning_method": f"random_search_{trials}_trials",
+                "validation_accuracy": tuned_holdout["accuracy"],
+                "holdout_macro_f1": tuned_holdout["macro_f1"],
+                "seed": seed,
+            }
+        )
+        print(f"\nSaved tuned thresholds to: {output_config}")
+    else:
+        # Save to default tuning output
+        output_path = Path(__file__).parent / "tuned_thresholds.json"
+        report = {
+            "tuning_date": datetime.now(timezone.utc).isoformat(),
+            "config": {
+                "seed": seed,
+                "holdout_ratio": holdout_ratio,
+                "trials": trials,
+                "penalty_weight": penalty_weight,
+            },
+            "baseline": {"train": baseline_train, "holdout": baseline_holdout},
+            "tuned": {"train": tuned_train, "holdout": tuned_holdout},
+            "thresholds": {
+                "warm_hysteresis": tuned_thresholds.warm_hysteresis,
+                "warm_relaxation": tuned_thresholds.warm_relaxation,
+                "warm_anisotropy": tuned_thresholds.warm_anisotropy,
+                "warm_provenance_deficit": tuned_thresholds.warm_provenance_deficit,
+                "ductile_hysteresis": tuned_thresholds.ductile_hysteresis,
+                "ductile_relaxation": tuned_thresholds.ductile_relaxation,
+                "ductile_anisotropy": tuned_thresholds.ductile_anisotropy,
+                "ductile_budget_pressure": tuned_thresholds.ductile_budget_pressure,
+                "unstable_tool_gain": tuned_thresholds.unstable_tool_gain,
+                "unstable_budget_pressure": tuned_thresholds.unstable_budget_pressure,
+            },
+        }
+        with open(output_path, "w") as f:
+            json.dump(report, f, indent=2)
+        print(f"\nSaved tuning report to: {output_path}")
+
+    return tuned_thresholds
+
+
 if __name__ == "__main__":
-    run_validation()
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Regime validation and tuning")
+    parser.add_argument("command", nargs="?", default="validate", 
+                       choices=["validate", "tune"],
+                       help="Command to run (default: validate)")
+    parser.add_argument("--config", type=Path, 
+                       help="Config file for thresholds")
+    parser.add_argument("--output", type=Path,
+                       help="Output config file for tuned thresholds")
+    parser.add_argument("--trials", type=int, default=200,
+                       help="Number of tuning trials")
+    parser.add_argument("--seed", type=int, default=42,
+                       help="Random seed for reproducibility")
+    
+    args = parser.parse_args()
+    
+    if args.command == "tune":
+        run_tuning(
+            output_config=args.output,
+            seed=args.seed,
+            trials=args.trials,
+        )
+    else:
+        run_validation(config_path=args.config)

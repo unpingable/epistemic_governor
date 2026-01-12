@@ -1,0 +1,11 @@
+{
+  "name": "basic_claim_extraction",
+  "category": "extractor",
+  "description": "Basic claim extraction test",
+  "input": {
+    "text": "The sky is blue."
+  },
+  "expected": {
+    "min_claims": 1
+  }
+}
