@@ -471,6 +471,18 @@ def collect_labeled_data(scenarios: List[WorkloadScenario]) -> List[Tuple[Regime
     return data
 
 
+def compute_dataset_hash(dataset_path: Path) -> Optional[str]:
+    """Compute hash of dataset for provenance."""
+    if not dataset_path or not dataset_path.exists():
+        return None
+    import hashlib
+    h = hashlib.sha256()
+    with open(dataset_path, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            h.update(chunk)
+    return h.hexdigest()[:16]
+
+
 def split_train_holdout(
     data: List[Tuple[RegimeSignals, OperationalRegime, str]],
     holdout_ratio: float = 0.2,
@@ -579,30 +591,56 @@ def search_thresholds(
 
 def run_tuning(
     output_config: Optional[Path] = None,
+    dataset_path: Optional[Path] = None,
     seed: int = 42,
     holdout_ratio: float = 0.2,
     trials: int = 200,
     penalty_weight: float = 0.5,
+    min_confidence: str = "medium",
 ):
     """
-    Tune RegimeThresholds on validation scenarios.
+    Tune RegimeThresholds on validation scenarios or real traces.
     
     Outputs tuned thresholds to a config file (not source code).
+    
+    Args:
+        output_config: Path to save tuned config
+        dataset_path: Path to labeled trace file (if None, uses synthetic scenarios)
+        seed: Random seed for reproducibility
+        holdout_ratio: Fraction of data to hold out for validation
+        trials: Number of random search trials
+        penalty_weight: Weight for false transition penalty
+        min_confidence: Minimum label confidence to include from traces
     """
     print("\n" + "="*70)
     print("REGIME THRESHOLD TUNING")
     print("="*70 + "\n")
 
-    # Collect data from scenarios
-    scenarios = [
-        make_stable_workload(),
-        make_gradual_stress_workload(),
-        make_spike_workload(),
-        make_cascade_workload(),
-        make_oscillation_workload(),
-    ]
+    # Collect data from traces or synthetic scenarios
+    if dataset_path:
+        print(f"Loading trace data from: {dataset_path}")
+        from epistemic_governor.trace_collector import load_trace, trace_to_training_data
+        events = load_trace(dataset_path)
+        data = trace_to_training_data(events, min_confidence=min_confidence)
+        print(f"Loaded {len(data)} samples (min_confidence={min_confidence})")
+        
+        # Leakage check: warn if most labels are low confidence
+        all_data = trace_to_training_data(events, min_confidence="unknown")
+        high_medium = trace_to_training_data(events, min_confidence="medium")
+        if len(high_medium) < len(all_data) * 0.5:
+            print(f"\n⚠️  LEAKAGE WARNING: Only {len(high_medium)}/{len(all_data)} samples are medium+ confidence")
+            print("   Results may be unreliable - need more event-based labels")
+    else:
+        print("Using synthetic scenarios (⚠️  labels are assumptions, not ground truth)")
+        scenarios = [
+            make_stable_workload(),
+            make_gradual_stress_workload(),
+            make_spike_workload(),
+            make_cascade_workload(),
+            make_oscillation_workload(),
+        ]
+        data = collect_labeled_data(scenarios)
 
-    data = collect_labeled_data(scenarios)
     train, holdout = split_train_holdout(data, holdout_ratio=holdout_ratio, seed=seed)
 
     print(f"Data: {len(data)} samples ({len(train)} train, {len(holdout)} holdout)")
@@ -656,6 +694,10 @@ def run_tuning(
                 "validation_accuracy": tuned_holdout["accuracy"],
                 "holdout_macro_f1": tuned_holdout["macro_f1"],
                 "seed": seed,
+                "dataset": str(dataset_path) if dataset_path else "synthetic",
+                "dataset_hash": compute_dataset_hash(dataset_path) if dataset_path else None,
+                "min_confidence": min_confidence,
+                "samples_used": len(train),
             }
         )
         print(f"\nSaved tuned thresholds to: {output_config}")
@@ -703,18 +745,25 @@ if __name__ == "__main__":
                        help="Config file for thresholds")
     parser.add_argument("--output", type=Path,
                        help="Output config file for tuned thresholds")
+    parser.add_argument("--dataset", type=Path,
+                       help="Labeled trace file for tuning (instead of synthetic)")
     parser.add_argument("--trials", type=int, default=200,
                        help="Number of tuning trials")
     parser.add_argument("--seed", type=int, default=42,
                        help="Random seed for reproducibility")
+    parser.add_argument("--min-confidence", default="medium",
+                       choices=["high", "medium", "low", "unknown"],
+                       help="Minimum label confidence for trace data")
     
     args = parser.parse_args()
     
     if args.command == "tune":
         run_tuning(
             output_config=args.output,
+            dataset_path=args.dataset,
             seed=args.seed,
             trials=args.trials,
+            min_confidence=args.min_confidence,
         )
     else:
         run_validation(config_path=args.config)
