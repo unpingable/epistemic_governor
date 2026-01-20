@@ -68,7 +68,10 @@ Agent → Governor.commit(state_change) → [if allowed] → Persist
 
 ## MCP Integration
 
-### As an MCP Server (Recommended)
+### As an MCP Server (Recommended - Not Yet Implemented)
+
+> **Note:** MCP server integration is planned but not yet implemented.
+> The patterns below describe the intended design.
 
 Expose the governor as an MCP server that mediates access to other tools.
 
@@ -76,16 +79,18 @@ Expose the governor as an MCP server that mediates access to other tools.
 Model ←→ Governor (MCP Server) ←→ Tool Servers
 ```
 
-**Exposed tools**:
+**Planned tools**:
 - `authorize_call(tool, args)` → `{allowed: bool, reason: str}`
 - `commit(state_delta)` → `{committed: bool, witness_id: str}`
-- `get_state()` → current ledger/contradiction state
+- `get_state()` → current epistemic state
 - `explain_denial(witness_id)` → why something was denied
 
 **Key behavior**:
 - Tool results are treated as **evidence**, not just context
 - State updates require explicit **commit**
 - Denials are **logged with causal chain**
+
+**Current status:** Stub only. See `integrations/__init__.py` for notes.
 
 ### As a Validator Tool (Weaker)
 

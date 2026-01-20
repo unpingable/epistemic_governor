@@ -7,9 +7,10 @@
 
 ## Core Axioms
 
-1. **Router proposes; Ledger commits.**
-   - The router suggests identity bindings. Only ledger events make them real.
-   - No in-memory state is authoritative. Ledger is truth.
+1. **Language proposes; Evidence commits.**
+   - The model suggests claims. Only admissible evidence enables commitment.
+   - In v2, SymbolicState is the authoritative state layer. The term "ledger"
+     refers to the append-only audit trail of state transitions.
 
 2. **Identity is revocable.**
    - `PROP_SPLIT` exists. Mistakes can be corrected.

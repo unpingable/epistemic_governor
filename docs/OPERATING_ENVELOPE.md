@@ -286,13 +286,16 @@ if gov.last_regime_response:
 
 These invariants are always enforced:
 
-1. **NLAI**: No freeform response path exists. All output derives from committed state.
+1. **NLAI**: Language proposes; only evidence closes. MODEL claims with zero 
+   external support are quarantined, not committed.
 
 2. **F-02**: MODEL_TEXT evidence is forbidden. Model cannot cite itself as authority.
 
-3. **Fail-closed**: Unknown states default to rejection, not acceptance.
+3. **Fail-closed**: Unknown states default to rejection of state mutation, not acceptance.
+   The system may still respond (non-assertively), but no new commitments are added.
 
-4. **Audit trail**: All resets emit events with trigger signals and reasons.
+4. **Audit trail**: All state transitions emit events with from/to state and trigger.
+   (Full evidence linkage and hash chains are planned, not yet implemented.)
 
 5. **Coupling reduction**: Every intervention must reduce at least one coupling dimension.
 
@@ -300,6 +303,11 @@ These invariants are always enforced:
 
 ## Version History
 
+- **v2.0.5**: Offline Fitter (trace → profile optimization, scoring objectives, evolutionary search), multiple scoring objectives (safety, truthfulness, ergonomics, throughput).
+- **v2.0.4**: Coordination Failure infrastructure (CommitmentMode, ContradictionState, CF-1/2/3 detection), Profile system (archetype profiles, fit-able vectors), Scenario harness (trace emission, adversarial tests).
+- **v2.0.3**: TUI trace viewer ("Cyberpunk Console") for visualizing regime signals, phase space, energy traces.
+- **v2.0.2**: Audit trail with hash chain (tamper-evident logging, causal links, evidence refs), real regime signals (rolling windows, actual commit/quarantine rates, replaces placeholders).
+- **v2.0.1**: Evidence wiring fix (evidence now affects adjudication), MODEL hard floor (unsupported MODEL claims quarantined), doc/code consistency audit.
 - **v2.0.0**: Added boil control (regime detection, reset primitives, named presets), src layout, comprehensive test suite.
 - **v1.3.0**: OTel projection, adversarial tests.
 - **v1.2.0**: Terminology alignment, jurisdiction system.

@@ -93,9 +93,9 @@ epistemic_governor/
 5. **Claim extraction** produces candidates
 6. **Temporal check** validates freshness
 7. **FSM** validates state transition
-8. **Adjudication** checks claims against ledger
-9. **Commit** (if evidence present) or **Propose** (if not)
-10. **Output** projected through boundary gate
+8. **Adjudication** checks claims against committed state (SymbolicState)
+9. **Commit** (if evidence present) or **Quarantine** (if not)
+10. **Output** projected from committed state only (projection enforces output rules)
 11. **Telemetry** emitted via observability layer
 12. **Ultrastability** considers adaptation based on metrics
 
@@ -108,15 +108,21 @@ No natural-language content can directly mutate authoritative state.
 Model outputs are proposals; commits require external evidence.
 
 ### Fail-Closed
-If any controller or check fails, the turn is blocked.
-Ambiguity defaults to denial, not approval.
+If any controller or check fails, **epistemic state is not advanced**.
+The system may still return a response (labeled non-assertive), but no
+new commitments are added to the ledger. Ambiguity defaults to denial
+of state mutation, not denial of interaction.
 
 ### Audit Trail
 Every state transition is logged with:
 - Timestamp
-- Evidence (if any)
-- Causal chain
-- Hash for integrity
+- From/to state
+- Triggering event
+- Turn ID
+
+**Note:** Full forensic-grade provenance (evidence refs, causal chain, 
+integrity hash) is planned but not yet implemented. Current logging
+captures transition events but not full evidence linkage.
 
 ---
 

@@ -629,6 +629,21 @@ class Adjudicator:
         # Step 4: Support calculus - AFTER structural checks
         # -----------------------------------------------------------------
         
+        # === HARD FLOOR: MODEL claims with zero support NEVER commit ===
+        # This closes the "timid hallucination" backdoor where low-σ
+        # model claims slip through because required support is tiny.
+        # NLAI: "Language may open questions, but only evidence may close them."
+        if candidate.provclass == ProvenanceClass.MODEL and support_mass <= 1e-9:
+            return AdjudicationResult(
+                decision=AdjudicationDecision.QUARANTINE_SUPPORT,
+                candidate=candidate,
+                support_mass_computed=support_mass,
+                support_mass_required=support_required,
+                support_deficit=support_deficit,
+                reason_code="MODEL_UNSUPPORTED",
+                details={"phase": "support_calculus", "rule": "NLAI_HARD_FLOOR"},
+            )
+        
         # 4a: Check sigma budget (conservation law)
         if state.total_sigma_allocated + candidate.sigma > state.sigma_budget:
             return AdjudicationResult(

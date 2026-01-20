@@ -452,7 +452,7 @@ from epistemic_governor.probes import (
     PROBE_LIBRARY,
 )
 
-__version__ = "2.0.0"
+__version__ = "2.0.5"
 __all__ = [
     # Unified Kernel
     "EpistemicKernel",

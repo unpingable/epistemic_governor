@@ -27,7 +27,8 @@ Usage:
 """
 
 import json
-from dataclasses import dataclass, asdict
+import uuid
+from dataclasses import dataclass, asdict, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -38,7 +39,11 @@ from epistemic_governor.control.regime import RegimeSignals, OperationalRegime
 
 @dataclass
 class TraceEvent:
-    """A single timestep in a trace."""
+    """
+    A single timestep in a trace.
+    
+    Enhanced to support CF detection and learning loop infrastructure.
+    """
     timestamp: str
     turn: int
     signals: Dict[str, float]
@@ -47,35 +52,143 @@ class TraceEvent:
     # Auto-assigned later
     label: Optional[str] = None
     label_confidence: Optional[str] = None  # "high", "medium", "low", "unknown"
+    
+    # === CF Infrastructure (v2.0.4) ===
+    
+    # Commitment state
+    commitment_mode: Optional[str] = None  # PROPOSE, PROVISIONAL_COMMIT, FINAL_COMMIT
+    
+    # Contradiction state
+    open_contradictions: int = 0
+    contradiction_ids: List[str] = field(default_factory=list)
+    
+    # CF events detected this turn
+    cf_events: List[Dict[str, Any]] = field(default_factory=list)
+    
+    # Claims processed this turn
+    claims: List[Dict[str, Any]] = field(default_factory=list)
+    
+    # Evidence provided this turn
+    evidence_refs: List[str] = field(default_factory=list)
+    
+    # Outputs (for replay)
+    output_text: Optional[str] = None
+    output_committed_ids: List[str] = field(default_factory=list)
+
+
+@dataclass
+class TraceHeader:
+    """
+    Trace file header with metadata.
+    
+    Used for reproducibility and profile fitting.
+    """
+    type: str = "header"
+    version: str = "2.0"
+    trace_id: str = field(default_factory=lambda: f"T_{uuid.uuid4().hex[:12]}")
+    started_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    version_hash: Optional[str] = None  # Git SHA or package version
+    
+    # Profile used (for fitting)
+    profile: Optional[Dict[str, Any]] = None
+    
+    # Configuration
+    config: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class TraceFooter:
+    """
+    Trace file footer with summary stats.
+    """
+    type: str = "footer"
+    ended_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    total_turns: int = 0
+    
+    # Summary stats
+    total_cf_events: int = 0
+    cf_counts: Dict[str, int] = field(default_factory=dict)
+    
+    total_contradictions: int = 0
+    contradictions_resolved: int = 0
+    
+    regime_distribution: Dict[str, int] = field(default_factory=dict)
+    
+    # Annotations (human or automated)
+    annotations: List[Dict[str, Any]] = field(default_factory=list)
 
 
 class TraceCollector:
     """
     Collects regime signals and events during real runs.
     
-    Outputs JSONL trace files for later analysis and tuning.
+    Outputs JSONL trace files for later analysis, tuning, and replay.
+    
+    Enhanced for Learning Loop:
+    - Captures CF events
+    - Records commitment mode transitions
+    - Tracks contradiction lifecycle
+    - Supports profile serialization
     """
     
-    def __init__(self, output_path: str | Path):
+    def __init__(
+        self, 
+        output_path: str | Path,
+        profile: Optional[Dict[str, Any]] = None,
+        config: Optional[Dict[str, Any]] = None,
+        version_hash: Optional[str] = None,
+    ):
         self.output_path = Path(output_path)
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
         self.file = open(self.output_path, "w")
         self.turn = 0
         
+        # Stats for footer
+        self.total_cf_events = 0
+        self.cf_counts: Dict[str, int] = {}
+        self.total_contradictions = 0
+        self.contradictions_resolved = 0
+        self.regime_counts: Dict[str, int] = {}
+        
         # Write header
-        header = {
-            "type": "header",
-            "version": "1.0",
-            "started_at": datetime.now(timezone.utc).isoformat(),
-        }
-        self.file.write(json.dumps(header) + "\n")
+        try:
+            from epistemic_governor import __version__
+            version = __version__
+        except ImportError:
+            version = "unknown"
+        
+        header = TraceHeader(
+            version=version,
+            version_hash=version_hash,
+            profile=profile,
+            config=config,
+        )
+        self.file.write(json.dumps(asdict(header)) + "\n")
     
     def record(
         self,
         signals: RegimeSignals,
         events: Optional[Dict[str, Any]] = None,
+        # === CF Infrastructure ===
+        commitment_mode: Optional[str] = None,
+        open_contradictions: int = 0,
+        contradiction_ids: Optional[List[str]] = None,
+        cf_events: Optional[List[Dict[str, Any]]] = None,
+        # === Claims and Evidence ===
+        claims: Optional[List[Dict[str, Any]]] = None,
+        evidence_refs: Optional[List[str]] = None,
+        # === Output ===
+        output_text: Optional[str] = None,
+        output_committed_ids: Optional[List[str]] = None,
+        # === Regime Label ===
+        label: Optional[str] = None,
     ) -> None:
-        """Record a single timestep."""
+        """
+        Record a single timestep.
+        
+        This is the core learning loop artifact - everything needed for
+        replay and offline fitting.
+        """
         self.turn += 1
         
         entry = TraceEvent(
@@ -83,19 +196,82 @@ class TraceCollector:
             turn=self.turn,
             signals=signals.to_dict(),
             events=events or {},
+            commitment_mode=commitment_mode,
+            open_contradictions=open_contradictions,
+            contradiction_ids=contradiction_ids or [],
+            cf_events=cf_events or [],
+            claims=claims or [],
+            evidence_refs=evidence_refs or [],
+            output_text=output_text,
+            output_committed_ids=output_committed_ids or [],
+            label=label,
         )
         
         self.file.write(json.dumps(asdict(entry)) + "\n")
         self.file.flush()
+        
+        # Update stats
+        if cf_events:
+            self.total_cf_events += len(cf_events)
+            for cf in cf_events:
+                code = cf.get("cf_code", "UNKNOWN")
+                self.cf_counts[code] = self.cf_counts.get(code, 0) + 1
+        
+        if label:
+            self.regime_counts[label] = self.regime_counts.get(label, 0) + 1
+    
+    def record_from_governor(self, governor, output_text: Optional[str] = None):
+        """
+        Convenience method to record directly from a SovereignGovernor.
+        
+        Extracts all relevant state automatically.
+        """
+        # Get signals
+        signals = governor._compute_regime_signals()
+        
+        # Get regime from last response
+        regime = None
+        if governor.last_regime_response:
+            regime = governor.last_regime_response.get("regime")
+        
+        # Get CF events
+        cf_events = [
+            {
+                "cf_code": e.cf_code.value,
+                "trigger": e.trigger,
+                "contradiction_ids": e.contradiction_ids,
+            }
+            for e in governor.fsm.cf_events
+        ]
+        
+        # Get contradictions
+        open_c = governor.fsm.get_open_contradictions()
+        
+        self.record(
+            signals=signals,
+            events={
+                "reset": governor.last_regime_response.get("action") == "RESET" if governor.last_regime_response else False,
+                "tripwire": governor.last_regime_response.get("tripwire") if governor.last_regime_response else None,
+            },
+            commitment_mode=governor.fsm.commitment_context.mode.name,
+            open_contradictions=len(open_c),
+            contradiction_ids=[c.contradiction_id for c in open_c],
+            cf_events=cf_events,
+            output_text=output_text,
+            label=regime,
+        )
     
     def close(self) -> None:
-        """Close the trace file."""
-        footer = {
-            "type": "footer",
-            "ended_at": datetime.now(timezone.utc).isoformat(),
-            "total_turns": self.turn,
-        }
-        self.file.write(json.dumps(footer) + "\n")
+        """Close the trace file with footer summary."""
+        footer = TraceFooter(
+            total_turns=self.turn,
+            total_cf_events=self.total_cf_events,
+            cf_counts=self.cf_counts,
+            total_contradictions=self.total_contradictions,
+            contradictions_resolved=self.contradictions_resolved,
+            regime_distribution=self.regime_counts,
+        )
+        self.file.write(json.dumps(asdict(footer)) + "\n")
         self.file.close()
 
 

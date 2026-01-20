@@ -1,5 +1,34 @@
 # Bounded Lattice Inference
 
+> **This project is archived.** Active development continues in
+> [Agent Governor](https://github.com/unpingable/agent_governor), which
+> absorbed and expanded every concept here into a production constraint
+> system (~10,400 tests, 60+ modules, daemon + multi-client architecture).
+>
+> **What moved where:**
+>
+> | Epistemic Governor | Agent Governor |
+> |--------------------|----------------|
+> | NLAI invariant | Core architecture principle (unchanged) |
+> | Regime detection (ELASTIC/WARM/DUCTILE/UNSTABLE) | `src/governor/regime.py` |
+> | Boil control (GREEN_TEA → BOIL presets) | `src/governor/boil.py` |
+> | Ultrastability (S1 adaptation) | `src/governor/ultrastability.py` |
+> | Provenance tracking | `src/governor/epistemic.py` |
+> | CF detection (CF-1/2/3) | Absorbed into `continuity.py` + `claim_diff.py` |
+> | Profile fitting | `src/governor/profiles.py` + `auto_tuning.py` |
+> | TUI trace viewer | `governor dashboard live/replay/demo` |
+> | Jurisdictions | `src/governor/jurisdictions.py` |
+>
+> **What remains unique here:** The BLI Constitution (`docs/BLI_CONSTITUTION.md`),
+> three-cueing theory, constraint kernel taxonomy, and the original paper spec
+> (`docs/PAPER_SPEC.md`) are scholarly artifacts not replicated in agent_gov.
+> If you're interested in the theoretical foundations, this repo is still the
+> place to read them.
+
+**This repository is not intended for deployment, extension, or reuse as a system component.**
+
+---
+
 **A governed reasoning substrate with persistent state and non-linguistic authority.**
 
 James Beck | Independent Researcher
@@ -123,12 +152,107 @@ Regime detection uses observable signals (hysteresis, tool gain, budget pressure
 | Suite | Tests | Description |
 |-------|-------|-------------|
 | Integration | 12 | Full pipeline end-to-end |
+| NLAI | 6 | Evidence wiring enforcement |
 | Regime | 8 | Regime detection and transitions |
 | Ultrastability | 17 | Ashby-style adaptation |
 | Boil Control | 7 | Presets, dwell time, tripwires |
+| Audit Trail | 7 | Hash chain, causal linking |
+| CF Detection | 11 | Coordination failure detection |
+| Profile | 9 | Archetype profiles, fitting |
+| Fitter | 7 | Scoring, mutation, optimization |
 | Edge Cases | 4 | TTL, rate limiter, domain caps |
-| Golden | 2 | Extractor and conformance |
-| **Total** | **50** | **All passing** |
+| **Total** | **88** | **All passing** |
+
+---
+
+## Learning Loop
+
+The governor includes infrastructure for "through use" optimization:
+
+### Profiles
+
+Archetype profiles with fit-able parameters:
+
+```python
+from epistemic_governor.profile import get_profile, Profile
+
+# Get archetype
+lab = get_profile("lab")        # Permissive exploration
+prod = get_profile("production") # Strict safety
+adv = get_profile("adversarial") # Maximum sensitivity
+
+# Flat vector for optimization
+vec = lab.as_flat_vector()  # Dict[str, float]
+```
+
+### Scenario Harness
+
+Run scenarios and emit traces:
+
+```bash
+# List scenarios
+python -m epistemic_governor.scenario_harness list
+
+# Run all built-in
+python -m epistemic_governor.scenario_harness run --all
+
+# Run adversarial tests
+python -m epistemic_governor.scenario_harness run --adversarial
+```
+
+### Offline Fitter
+
+Optimize profiles from traces:
+
+```bash
+# Score traces with safety objective
+python -m epistemic_governor.fitter score traces/ --objective safety
+
+# Fit profile to traces
+python -m epistemic_governor.fitter fit traces/ --baseline production --objective truthfulness
+
+# Compare two profiles
+python -m epistemic_governor.fitter compare traces/ lab production
+```
+
+Scoring objectives:
+- **safety**: Minimize CF events, maximize tripwire effectiveness
+- **truthfulness**: Minimize false commits, maximize evidence coverage
+- **ergonomics**: Minimize user friction, balance contest windows
+- **throughput**: Maximize claims processed, minimize regime stress
+
+### Coordination Failure Detection
+
+CF codes detected without blocking (diagnostic mode):
+
+- **CF-1**: Unilateral closure (FINAL without contest path)
+- **CF-2**: Asymmetric tempo (escalation before contest window)
+- **CF-3**: Repair suppression (FINAL with open contradictions)
+
+---
+
+## Observability
+
+### TUI Trace Viewer ("Cyberpunk Console")
+
+Visualize regime signals and system "struggle" in real-time:
+
+```bash
+# Generate and play demo trace
+python -m epistemic_governor.observability.trace_tui --demo
+
+# Play existing trace
+python -m epistemic_governor.observability.trace_tui traces/run_001.jsonl --speed 2.0
+
+# Print trace stats
+python -m epistemic_governor.observability.trace_tui --stats traces/run_001.jsonl
+```
+
+Features:
+- **Phase Space**: λ (arrival) vs μ (resolution) stability plot
+- **Regime Gauge**: ELASTIC → WARM → DUCTILE → UNSTABLE
+- **Energy Trace**: Rolling E(S) sparkline
+- **Event Log**: Resets, tripwires, interventions
 
 ---
 
