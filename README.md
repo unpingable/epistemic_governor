@@ -1,5 +1,3 @@
-# Bounded Lattice Inference
-
 > **This project is archived.** Active development continues in
 > [Agent Governor](https://github.com/unpingable/agent_governor), which
 > absorbed and expanded every concept here into a production constraint
@@ -26,6 +24,10 @@
 > place to read them.
 
 **This repository is not intended for deployment, extension, or reuse as a system component.**
+
+---
+
+# Bounded Lattice Inference
 
 ---
 
